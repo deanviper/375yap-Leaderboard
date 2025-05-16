@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>375yap Leaderboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* ==== Color Variables ==== */
+    :root {
+      --bg: #050607;
+      --text: #B9C1C1;
+      --panel-bg: rgba(26,26,26,0.9);
+      --border: #B9C1C1;
+      --orange: #FF3D14;
+    }
+    .light {
+      --bg: #FFFFFF;
+      --text: #000000;
+      --panel-bg: #F5F5F5;
+      --border: #CCC;
+      --orange: #FF3D14;
+    }
+
+    /* ==== Base Styles ==== */
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Roboto', sans-serif;
+      line-height: 1.4;
+      transition: background .3s, color .3s;
+    }
+    a { color: inherit; }
+    button { cursor: pointer; }
+
+    /* ==== Toggle Button ==== */
+    #mode-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--orange);
+      z-index: 1000;
+    }
+
+    /* ==== Container ==== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ==== Header ==== */
+    .title {
+      font-size: 2.5rem;
+      color: var(--orange);
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0,0,0,.7);
+      margin-bottom: 1rem;
+    }
+
+    /* ==== Legend + Table Layout ==== */
+    .dashboard {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      align-items: center;
+      padding: 0 1rem;
+      /* shift everything left 20% on desktop */
+      padding-left: 20vw;
+    }
+    .legend {
+      flex: 0 0 200px;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      font-size: .95rem;
+    }
+    .legend h2 {
+      font-weight: bold;
+      text-decoration: underline;
+      color: var(--text);
+      margin-bottom: .5rem;
+    }
+    .tier-item {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      color: var(--text);
+    }
+    .swatch {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .tier-I .swatch    { background: #FFD8B2; }
+    .tier-II .swatch   { background: #FFB266; }
+    .tier-FAKER .swatch{ background: #FF3D14; }
+
+    /* ==== Table Wrapper ==== */
+    .table-wrapper {
+      flex: 1;
+      max-width: 700px;
+      width: 75%;
+    }
+    /* Search bar */
+    #search-container {
+      margin-bottom: .75rem;
+      text-align: center;
+    }
+    #search-input {
+      width: 60%;
+      max-width: 300px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-right: 4px;
+    }
+    #search-button {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      background: var(--orange);
+      color: #fff;
+      border-radius: 4px;
+    }
+
+    /* ==== Table Styles ==== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    thead {
+      background: var(--orange);
+      color: #fff;
+    }
+    th, td {
+      padding: .75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      white-space: nowrap;
+      font-size: .95rem;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      text-align: right;
+    }
+    th:nth-child(3), td:nth-child(3) {
+      text-align: center;
+    }
+    tbody tr:nth-child(odd) {
+      background: #1E1E1E;
+    }
+    /* PFP image */
+    .pfp {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: .5rem;
+    }
+
+    /* ==== Responsive (mobile) ==== */
+    @media (max-width: 768px) {
+      .dashboard {
+        flex-direction: column;
+        padding-left: 1rem;  /* undo desktop shift */
+      }
+      .legend {
+        width: 100%;
+        align-items: center;
+        text-align: center;
+      }
+      .table-wrapper {
+        width: 100%;
+        max-width: 600px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button id="mode-toggle">🌙</button>
+  <div class="container">
+    <!-- mobile header (same styling) -->
+    <h1 class="title">375yap Leaderboard</h1>
+
+    <div class="dashboard">
+      <!-- Legend panel -->
+      <div class="legend">
+        <h2>Please don’t change your Discord username</h2>
+        <div class="tier-item tier-I">
+          <div class="swatch"></div><div>Gamer I = 0 – 199 XP</div>
+        </div>
+        <div class="tier-item tier-II">
+          <div class="swatch"></div><div>Gamer II = 200 – 399 XP</div>
+        </div>
+        <div class="tier-item tier-FAKER">
+          <div class="swatch"></div><div>FAKER = 400+ XP</div>
+        </div>
+      </div>
+
+      <!-- Table + Search -->
+      <div class="table-wrapper">
+        <div id="search-container" style="display:none">
+          <input id="search-input" type="text" placeholder="Search username…">
+          <button id="search-button">Go</button>
+        </div>
+        <div id="table_div"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==== Dark/Light mode toggle ====
+    const toggle = document.getElementById('mode-toggle');
+    const root = document.documentElement;
+    const saved = localStorage.getItem('mode') || 'dark';
+    root.classList.add(saved);
+    toggle.textContent = saved==='dark' ? '🌞' : '🌙';
+    toggle.onclick = () => {
+      const now = root.classList.contains('dark') ? 'light' : 'dark';
+      root.classList.toggle('dark');
+      root.classList.toggle('light');
+      toggle.textContent = now==='dark' ? '🌞' : '🌙';
+      localStorage.setItem('mode', now);
+    };
+
+    // ==== Load data from Google Sheets ====
+    const SHEET_ID = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
+    const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?`;
+
+    // 1) fetch PFP map from first sheet (gid=0)
+    new google.visualization.Query(
+      BASE + 'gid=0&headers=1&tq=select%20A%2C%20F'
+    ).send(resPFP => {
+      if (resPFP.isError()) return console.error(resPFP.getMessage());
+      const pfpData = resPFP.getDataTable();
+      const pfpMap = {};
+      for (let i=0; i<pfpData.getNumberOfRows(); i++) {
+        const u = pfpData.getValue(i,0);
+        const url = pfpData.getValue(i,1);
+        pfpMap[u] = url;
+      }
+
+      // 2) fetch Yap leaderboard
+      new google.visualization.Query(
+        BASE + 'sheet=Temporary%20LB&headers=1&tq=select%20A%2C%20B%20order%20by%20B%20desc'
+      ).send(resLB => {
+        if (resLB.isError()) return console.error(resLB.getMessage());
+        const lb = resLB.getDataTable();
+        const allRows = [];
+        for (let i=0; i<lb.getNumberOfRows(); i++) {
+          allRows.push({
+            user: lb.getValue(i,0),
+            pts: lb.getValue(i,1)
+          });
+        }
+        render(allRows, pfpMap);
+      });
+    });
+
+    // ==== Render function ====
+    function render(allRows, pfpMap) {
+      const top50 = allRows.slice(0,50);
+      const tableDiv = document.getElementById('table_div');
+      tableDiv.innerHTML = '';
+      const tbl = document.createElement('table');
+      // header
+      const thead = tbl.createTHead();
+      const hr = thead.insertRow();
+      ['User','Points'].forEach(txt => {
+        const th=document.createElement('th');
+        th.textContent = txt;
+        hr.appendChild(th);
+      });
+      // body
+      const tb = tbl.createTBody();
+      top50.forEach(r => {
+        const tr=tb.insertRow();
+        const tdUser=tr.insertCell();
+        const img=document.createElement('img');
+        img.src=pfpMap[r.user]||'';
+        img.className='pfp';
+        tdUser.appendChild(img);
+        tdUser.appendChild(document.createTextNode(r.user));
+        const tdPts=tr.insertCell();
+        tdPts.textContent = r.pts;
+        tb.appendChild(tr);
+      });
+      tableDiv.appendChild(tbl);
+
+      // search bar if more than 50
+      if (allRows.length>50) {
+        const sc = document.getElementById('search-container');
+        sc.style.display = 'block';
+        document.getElementById('search-button').onclick = () => {
+          const q = document.getElementById('search-input').value.trim();
+          const found = allRows.find(r=>r.user.toLowerCase()===q.toLowerCase());
+          if (!found) return alert('User not found');
+          // show found single-row table
+          render([found], pfpMap);
+        };
+      }
+    }
+  </script>
+</body>
+</html>
