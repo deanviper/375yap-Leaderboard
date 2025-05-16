@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto & Google Charts -->
+  <!-- Roboto & Charts loader -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
@@ -29,143 +29,83 @@
       font-family:'Roboto',sans-serif;
       transition: background .3s, color .3s;
     }
-    button { cursor:pointer; }
-    /* Toggle */
+    button { cursor:pointer; border:none; background:none; }
     #mode-toggle {
-      position: fixed;
-      top:12px; right:12px;
-      font-size:1.4rem;
-      background:none;
-      border:none;
-      color: var(--orange);
-      z-index:1000;
+      position: fixed; top:12px; right:12px;
+      font-size:1.4rem; color: var(--orange); z-index:1000;
     }
-    /* Container */
     .container {
-      max-width:1200px;
-      margin:0 auto;
+      max-width:1000px; margin:0 auto;
       padding:2rem 1rem 4rem;
       text-align:center;
     }
-    .title {
-      font-size:2.5rem;
-      color: var(--orange);
-      margin-bottom:1rem;
+    h1 {
+      font-size:2.5rem; color: var(--orange);
       text-shadow:0 2px 4px rgba(0,0,0,.7);
-    }
-    /* Search */
-    #search-container {
       margin-bottom:1rem;
-      display:none;
+    }
+    #search-container {
+      display:none; margin-bottom:1rem;
     }
     #search-input {
+      width:60%; max-width:300px;
       padding:6px 8px;
       border:1px solid var(--border);
       border-radius:4px;
-      width:200px;
-      max-width:80%;
       margin-right:4px;
     }
     #search-button {
       padding:6px 12px;
       background: var(--orange);
       color:#fff;
-      border:none;
       border-radius:4px;
     }
-    /* Table outer */
     .dashboard {
-      display:flex;
-      justify-content:center;
-      /* shift left 20% on desktop */
-      padding-left:20vw;
+      display:flex; justify-content:center;
+      padding:0 1rem;
     }
     .table-wrapper {
-      flex:1;
-      max-width:700px;
-      width:75%;
-    }
-    /* Table styling */
-    #table_div {
-      max-height:70vh;
-      overflow-y:auto;
-      overflow-x:hidden;
-    }
-    #table_div table {
-      width:100%;
-      border-collapse:collapse;
-      background: var(--panel-bg);
+      width:75%; max-width:700px; flex-shrink:0;
       border:1px solid var(--border);
       border-radius:8px;
       overflow:hidden;
+      background: var(--panel-bg);
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+    }
+    #table_div { width:100%; max-height:70vh; overflow-y:auto; }
+    #table_div table {
+      width:100%; border-collapse:collapse;
+      table-layout:fixed;
     }
     #table_div th, #table_div td {
-      padding:12px 16px;
-      font-size:.95rem;
-      white-space:nowrap;
+      padding:.75rem 1rem; font-size:.95rem;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    #table_div thead {
-      background: var(--orange);
-      color:#fff;
-    }
-    /* align points right */
+    #table_div thead { background: var(--orange); color:#fff; }
     #table_div th:nth-child(2),
-    #table_div td:nth-child(2) {
-      text-align:right;
-    }
-    /* avatars cell */
-    #table_div th:nth-child(1),
-    #table_div td:nth-child(1) {
-      text-align:left;
-    }
-    /* striping */
-    #table_div tbody tr:nth-child(odd) {
-      background:#1E1E1E;
-    }
+    #table_div td:nth-child(2) { text-align:right; }
+    #table_div tbody tr:nth-child(odd) { background:#1E1E1E; }
     .pfp {
       width:24px; height:24px;
       border-radius:50%;
       vertical-align:middle;
       margin-right:.5rem;
     }
-    /* Scrollbar styling (WebKit) */
-    #table_div::-webkit-scrollbar {
-      width:8px;
-    }
-    #table_div::-webkit-scrollbar-thumb {
-      background: rgba(200,200,200,0.2);
-      border-radius:4px;
-    }
-    /* Responsive */
     @media (max-width:768px) {
-      .dashboard {
-        flex-direction:column;
-        padding-left:0;
-      }
-      .table-wrapper {
-        width:100%;
-        max-width:600px;
-      }
-      #table_div {
-        overflow-x:auto;  /* allow sideways scroll */
-        overflow-y:hidden;
-      }
+      .dashboard { flex-direction:column; }
+      .table-wrapper { width:100%; }
+      #table_div { overflow-x:auto; }
     }
   </style>
 </head>
 <body>
-  <!-- Dark/Light Toggle -->
   <button id="mode-toggle">🌙</button>
-
   <div class="container">
-    <h1 class="title">375yap Leaderboard</h1>
-
-    <!-- Search (only shows if >50 rows) -->
+    <h1>375yap Leaderboard</h1>
     <div id="search-container">
       <input id="search-input" placeholder="🔍 Search username…" />
       <button id="search-button">Go</button>
     </div>
-
     <div class="dashboard">
       <div class="table-wrapper">
         <div id="table_div"></div>
@@ -174,112 +114,106 @@
   </div>
 
   <script>
-    // 1) Dark/light mode persistence
+    // 1) Dark/light toggle
     google.charts.load('current',{packages:['table']});
-    const html = document.documentElement;
+    const root = document.documentElement;
     const saved = localStorage.getItem('mode') || 'dark';
-    html.classList.add(saved);
+    root.classList.add(saved);
     document.getElementById('mode-toggle').textContent = saved==='dark'?'🌞':'🌙';
     document.getElementById('mode-toggle').onclick = () => {
-      const now = html.classList.contains('dark') ? 'light' : 'dark';
-      html.classList.toggle('dark');
-      html.classList.toggle('light');
+      const now = root.classList.contains('dark') ? 'light' : 'dark';
+      root.classList.toggle('dark');
+      root.classList.toggle('light');
       localStorage.setItem('mode', now);
       document.getElementById('mode-toggle').textContent = now==='dark'?'🌞':'🌙';
     };
 
-    // 2) Once Charts API is ready → start fetching
-    google.charts.setOnLoadCallback(fetchPFPs);
+    // 2) Once charts are loaded, start the two‐step fetch
+    google.charts.setOnLoadCallback(init);
 
-    function fetchPFPs() {
-      const SHEET_KEY = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?`;
-      const q1 = new google.visualization.Query(
-        BASE +
-        'gid=0&headers=1&tq=' +
-        encodeURIComponent('select B,F')
-      );
-      q1.send(res=>{
-        if(res.isError()){
-          document.getElementById('table_div').innerHTML =
-            '<p style="color:#FF3D14">Error loading avatars: '+res.getMessage()+'</p>';
-          return;
-        }
-        const dt = res.getDataTable();
-        const pfpMap = {};
-        for(let i=0; i<dt.getNumberOfRows(); i++){
-          pfpMap[dt.getValue(i,0)] = dt.getValue(i,1);
-        }
-        fetchLB(pfpMap);
+    function init(){
+      const SHEET_KEY = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
+      fetchPFPs(SHEET_KEY).then(pfpMap => loadScores(SHEET_KEY, pfpMap));
+    }
+
+    function fetchPFPs(key){
+      return new Promise(resolve => {
+        const q = new google.visualization.Query(
+          `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?gid=0&headers=1`
+          + `&tq=select%20B%2C%20F`
+        );
+        q.send(res => {
+          if(res.isError()){
+            console.error(res.getMessage());
+            return resolve({});
+          }
+          const dt = res.getDataTable(), map = {};
+          for(let i=0;i<dt.getNumberOfRows();i++){
+            map[ dt.getValue(i,0) ] = dt.getValue(i,1);
+          }
+          resolve(map);
+        });
       });
     }
 
-    function fetchLB(pfpMap) {
-      const SHEET_KEY = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?`;
-      const q2 = new google.visualization.Query(
-        BASE +
-        'sheet=Temporary%20LB&headers=1&tq=' +
-        encodeURIComponent('select A,B order by B desc')
+    function loadScores(key, pfpMap){
+      const q = new google.visualization.Query(
+        `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?sheet=Temporary%20LB&headers=1`
+        + `&tq=select%20A%2C%20B%20order%20by%20B%20desc`
       );
-      q2.send(res=>{
+      q.send(res => {
         if(res.isError()){
+          console.error(res.getMessage());
           document.getElementById('table_div').innerHTML =
-            '<p style="color:#FF3D14">Error loading leaderboard: '+res.getMessage()+'</p>';
+            `<p style="color:var(--orange);padding:1rem">Error loading sheet</p>`;
           return;
         }
         const dt = res.getDataTable();
         const all = [];
         for(let i=0; i<dt.getNumberOfRows(); i++){
-          all.push({
-            u: dt.getValue(i,0),
-            pts: dt.getValue(i,1)
-          });
+          all.push({u:dt.getValue(i,0), pts:dt.getValue(i,1)});
         }
-        drawTable(all, pfpMap);
+        render(all, pfpMap);
       });
     }
 
-    function drawTable(all, pfpMap) {
+    function render(all, pfpMap){
       const top50 = all.slice(0,50);
-      const container = document.getElementById('table_div');
-      container.innerHTML = ''; 
-      // create table
-      const tbl = document.createElement('table');
-      const thead = tbl.createTHead().insertRow();
-      ['User','Points'].forEach(txt=>{
-        const th = document.createElement('th');
-        th.textContent = txt;
+      const div = document.getElementById('table_div');
+      div.innerHTML = ''; 
+      // build table
+      const table = document.createElement('table');
+      const thead = table.createTHead().insertRow();
+      ['User','Points',''].forEach(h => {
+        const th=document.createElement('th');
+        th.textContent=h;
         thead.appendChild(th);
       });
-      const tbody = tbl.createTBody();
-      top50.forEach(r=>{
+      const tbody = table.createTBody();
+      top50.forEach(r => {
         const row = tbody.insertRow();
-        // avatar + username
-        const c1 = row.insertCell();
+        const cellU = row.insertCell();
         const img = document.createElement('img');
-        img.src = pfpMap[r.u]||'';
+        img.src = pfpMap[r.u] || '';
         img.className = 'pfp';
-        c1.appendChild(img);
-        c1.appendChild(document.createTextNode(r.u));
-        // points (2 decimals)
-        const c2 = row.insertCell();
-        c2.textContent = parseFloat(r.pts).toFixed(2);
+        cellU.appendChild(img);
+        cellU.appendChild(document.createTextNode(r.u));
+        const cellP = row.insertCell();
+        cellP.textContent = r.pts.toFixed(2);
+        row.insertCell(); // empty spacer
       });
-      container.appendChild(tbl);
+      div.appendChild(table);
 
-      // if more than 50, show search
-      if(all.length>50){
-        const sc = document.getElementById('search-container');
+      // search UI for below-50
+      const sc = document.getElementById('search-container');
+      if(all.length > 50){
         sc.style.display = 'block';
-        document.getElementById('search-button').onclick = ()=>{
-          const q = document.getElementById('search-input').value.trim().toLowerCase();
-          const found = all.find(x=>x.u.toLowerCase()===q);
-          if(!found){
-            alert('User not found');
-            return;
-          }
-          drawTable([found], pfpMap);
+        document.getElementById('search-button').onclick = () => {
+          const q = document.getElementById('search-input')
+                      .value.trim().toLowerCase();
+          const found = all.find(x => x.u.toLowerCase()===q);
+          if(!found) return alert('User not found');
+          render([found], pfpMap);
         };
       }
     }
