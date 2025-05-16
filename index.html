@@ -82,8 +82,12 @@
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
     #table_div thead { background: var(--orange); color:#fff; }
-    #table_div th:nth-child(2),
-    #table_div td:nth-child(2) { text-align:right; }
+    #table_div th:nth-child(1), #table_div td:nth-child(1) {
+      width:2.5rem; text-align:center;
+    }
+    #table_div th:nth-child(3), #table_div td:nth-child(3) {
+      text-align:right;
+    }
     #table_div tbody tr:nth-child(odd) { background:#1E1E1E; }
     .pfp {
       width:24px; height:24px;
@@ -114,7 +118,6 @@
   </div>
 
   <script>
-    // 1) Dark/light toggle
     google.charts.load('current',{packages:['table']});
     const root = document.documentElement;
     const saved = localStorage.getItem('mode') || 'dark';
@@ -128,90 +131,72 @@
       document.getElementById('mode-toggle').textContent = now==='dark'?'🌞':'🌙';
     };
 
-    // 2) Once charts are loaded, start the two‐step fetch
     google.charts.setOnLoadCallback(init);
-
     function init(){
       const SHEET_KEY = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
       fetchPFPs(SHEET_KEY).then(pfpMap => loadScores(SHEET_KEY, pfpMap));
     }
-
     function fetchPFPs(key){
       return new Promise(resolve => {
         const q = new google.visualization.Query(
-          `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?gid=0&headers=1`
-          + `&tq=select%20B%2C%20F`
+          `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?gid=0&headers=1&tq=select%20B%2C%20F`
         );
         q.send(res => {
-          if(res.isError()){
-            console.error(res.getMessage());
-            return resolve({});
-          }
-          const dt = res.getDataTable(), map = {};
+          const dt = res.getDataTable(), map={};
           for(let i=0;i<dt.getNumberOfRows();i++){
-            map[ dt.getValue(i,0) ] = dt.getValue(i,1);
+            map[dt.getValue(i,0)] = dt.getValue(i,1);
           }
           resolve(map);
         });
       });
     }
-
     function loadScores(key, pfpMap){
       const q = new google.visualization.Query(
-        `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?sheet=Temporary%20LB&headers=1`
-        + `&tq=select%20A%2C%20B%20order%20by%20B%20desc`
+        `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?sheet=Temporary%20LB&headers=1&tq=select%20A%2C%20B%20order%20by%20B%20desc`
       );
       q.send(res => {
-        if(res.isError()){
-          console.error(res.getMessage());
-          document.getElementById('table_div').innerHTML =
-            `<p style="color:var(--orange);padding:1rem">Error loading sheet</p>`;
-          return;
-        }
         const dt = res.getDataTable();
         const all = [];
-        for(let i=0; i<dt.getNumberOfRows(); i++){
+        for(let i=0;i<dt.getNumberOfRows();i++){
           all.push({u:dt.getValue(i,0), pts:dt.getValue(i,1)});
         }
         render(all, pfpMap);
       });
     }
-
     function render(all, pfpMap){
       const top50 = all.slice(0,50);
-      const div = document.getElementById('table_div');
-      div.innerHTML = ''; 
-      // build table
+      const div = document.getElementById('table_div'); div.innerHTML='';
       const table = document.createElement('table');
       const thead = table.createTHead().insertRow();
-      ['User','Points',''].forEach(h => {
-        const th=document.createElement('th');
-        th.textContent=h;
-        thead.appendChild(th);
+      ['#','User','Points',''].forEach(h=>{
+        const th=document.createElement('th'); th.textContent=h; thead.appendChild(th);
       });
       const tbody = table.createTBody();
-      top50.forEach(r => {
+      top50.forEach((r,i)=>{
         const row = tbody.insertRow();
-        const cellU = row.insertCell();
+        // rank
+        row.insertCell().textContent = i+1;
+        // user + pfp
+        const cu = row.insertCell();
         const img = document.createElement('img');
         img.src = pfpMap[r.u] || '';
         img.className = 'pfp';
-        cellU.appendChild(img);
-        cellU.appendChild(document.createTextNode(r.u));
-        const cellP = row.insertCell();
-        cellP.textContent = r.pts.toFixed(2);
-        row.insertCell(); // empty spacer
+        cu.appendChild(img);
+        cu.appendChild(document.createTextNode(r.u));
+        // points fixed 2 decimals
+        row.insertCell().textContent = r.pts.toFixed(2);
+        // spacer
+        row.insertCell();
       });
       div.appendChild(table);
 
-      // search UI for below-50
-      const sc = document.getElementById('search-container');
-      if(all.length > 50){
-        sc.style.display = 'block';
-        document.getElementById('search-button').onclick = () => {
-          const q = document.getElementById('search-input')
-                      .value.trim().toLowerCase();
-          const found = all.find(x => x.u.toLowerCase()===q);
+      // search hook
+      if(all.length>50){
+        const sc = document.getElementById('search-container');
+        sc.style.display='block';
+        document.getElementById('search-button').onclick=()=>{
+          const q=document.getElementById('search-input').value.trim().toLowerCase();
+          const found=all.find(x=>x.u.toLowerCase()===q);
           if(!found) return alert('User not found');
           render([found], pfpMap);
         };
