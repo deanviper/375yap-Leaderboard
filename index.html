@@ -4,189 +4,157 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto Font -->
+  <!-- Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --bg: #fff;
-      --fg: #111;
-      --panel-bg: #f9f9f9;
-      --table-bg: rgba(255,255,255,0.9);
-      --header-color: #FF3D14;
-      --row-even: #f0f0f0;
-      --row-odd: #e6e6e6;
-    }
-    [data-theme="dark"] {
-      --bg: #050607;
-      --fg: #B9C1C1;
-      --panel-bg: #1A1A1A;
-      --table-bg: rgba(26,26,26,0.9);
-      --row-even: #1E1E1E;
-      --row-odd: #181818;
-    }
-
-    * { box-sizing: border-box; margin:0; padding:0 }
-    body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: 'Roboto', sans-serif;
-      padding: 20px;
-      min-height: 100vh;
-    }
-    #theme-toggle {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      background: var(--panel-bg);
-      border: none;
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-
-    h1 {
-      text-align: center;
-      color: var(--header-color);
-      margin-bottom: 16px;
-    }
-
-    #search {
-      display: block;
-      margin: 0 auto 16px;
-      padding: 8px 12px;
-      width: 90%;
-      max-width: 400px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-
-    #table_div {
-      max-width: 800px;
-      margin: 0 auto;
-      background: var(--table-bg);
-      border: 1px solid #B9C1C1;
-      border-radius: 8px;
-      overflow-y: auto;
-      max-height: 60vh;
-      padding: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    /* avatar + username cell */
-    .user-cell {
-      display: flex;
-      align-items: center;
-    }
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      margin-right: 8px;
-      object-fit: cover;
-    }
-
-    /* Google Table overrides */
-    .google-visualization-table-th {
-      background: var(--header-color) !important;
-      color: #fff !important;
-      font-weight: 700 !important;
-      text-align: center !important;
-      padding: 12px !important;
-    }
-    .google-visualization-table-td {
-      padding: 12px !important;
-      border-bottom: 1px solid #333 !important;
-      white-space: nowrap;
-    }
-    .google-visualization-table-tr-even { background: var(--row-even) !important; }
-    .google-visualization-table-tr-odd  { background: var(--row-odd)  !important; }
-    #table_div table { border-collapse: separate; border-spacing: 0; }
-    #table_div thead th { position: sticky; top: 0; z-index: 2; }
-  </style>
-
-  <!-- Google Charts loader -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
   <script>
-    // Theme toggle
-    let dark = localStorage.getItem('theme') === 'dark';
-    function applyTheme() {
-      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-      document.getElementById('theme-toggle').textContent = dark ? 'Light Mode' : 'Dark Mode';
-    }
-    function toggleTheme() {
-      dark = !dark;
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-      applyTheme();
-    }
-
-    // Load & draw
     google.charts.load('current',{packages:['table']});
-    google.charts.setOnLoadCallback(draw);
+    google.charts.setOnLoadCallback(drawTable);
 
-    function draw() {
-      applyTheme();
-      document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-
-      const query = new google.visualization.Query(
-        'https://docs.google.com/spreadsheets/d/1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE/gviz/tq'
-        + '?gid=0&headers=1&tq=' + encodeURIComponent('select F, A, B')
-      );
-
-      query.send(res => {
-        if (res.isError()) {
-          document.getElementById('table_div').innerHTML =
-            `<p style="color:red">Error: ${res.getMessage()}</p>`;
-          return;
-        }
-
-        const raw = res.getDataTable();
-        const data = new google.visualization.DataTable();
-        data.addColumn('string','User');
-        data.addColumn('number','Points');
-
-        // build rows
-        for (let r = 0; r < raw.getNumberOfRows() && r < 50; r++) {
-          const img = raw.getValue(r, 0);
-          const user = raw.getValue(r, 1);
-          const pts = parseFloat(raw.getValue(r, 2)) || 0;
-          const pts2 = Math.round(pts * 100) / 100;
-          const html =
-            `<div class="user-cell">
-               <img class="avatar" src="${img}" alt="">
-               <span>${user}</span>
-             </div>`;
-          data.addRow([ html, pts2 ]);
-        }
-
-        const table = new google.visualization.Table(document.getElementById('table_div'));
-        table.draw(data, { allowHtml: true, width: '100%', height: '100%' });
-
-        // search‐filter
-        document.getElementById('search').addEventListener('input', e => {
-          const q = e.target.value.toLowerCase();
-          const filt = new google.visualization.DataTable();
-          filt.addColumn('string','User');
-          filt.addColumn('number','Points');
-          for (let i = 0; i < data.getNumberOfRows(); i++) {
-            const txt = data.getValue(i,0).toLowerCase();
-            if (txt.includes(q)) {
-              filt.addRow([ data.getValue(i,0), data.getValue(i,1) ]);
-            }
+    function drawTable() {
+      // 🔑 POINT TO YOUR PUBLISHED SHEET, sheet=Temporary%20LB selects the second tab
+      const sheetUrl = 
+        'https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK/gviz/tq'
+        + '?sheet=Temporary%20LB&headers=1'
+        + '&tq=select%20A%2C%20B';
+      new google.visualization.Query(sheetUrl)
+        .send(res => {
+          if (res.isError()) {
+            document.body.innerHTML = '<p style="color:#FF3D14">Error: '+res.getMessage()+'</p>';
+            return;
           }
-          table.draw(filt, { allowHtml:true, width:'100%', height:'100%' });
+          const data = res.getDataTable();
+          // trim to top 50 for initial display
+          const view = new google.visualization.DataView(data);
+          view.setRows(view.getRange().length > 50 ? {start:0, length:50} : {start:0, length:view.getRange().length});
+
+          const table = new google.visualization.Table(document.getElementById('table_div'));
+          table.draw(view,{
+            showRowNumber: false,
+            width: '100%',
+            height: '100%',
+          });
+
+          // format points to 2 decimals:
+          for (let i = 0; i < view.getNumberOfRows(); i++) {
+            const v = view.getValue(i,1);
+            table.getChart().getContainer().querySelectorAll('tbody tr')[i]
+              .cells[1].textContent = parseFloat(v).toFixed(2);
+          }
         });
+    }
+
+    // simple search/filter
+    function onSearch(e) {
+      const q = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#table_div tbody tr');
+      rows.forEach(r => {
+        const user = r.cells[0].textContent.toLowerCase();
+        r.style.display = user.includes(q) ? '' : 'none';
       });
     }
-  </script>
-</head>
 
+    // light/dark toggle
+    function toggleTheme() {
+      document.body.classList.toggle('light');
+      document.getElementById('theme-btn').textContent =
+        document.body.classList.contains('light') ? 'Dark Mode' : 'Light Mode';
+    }
+  </script>
+  <style>
+    /* Base */
+    body {
+      margin:0; padding:40px 0;
+      background:linear-gradient(135deg,#050607,#1A1A1A);
+      color:#B9C1C1; font-family:'Roboto',sans-serif;
+      text-align:center;
+      transition:background .3s, color .3s;
+    }
+    body.light {
+      background:#f4f4f4; color:#222;
+    }
+    /* Header */
+    .header-wrapper {
+      width:75%; max-width:700px; margin:0 auto 20px;
+    }
+    h1 {
+      margin:0; font-size:2.5rem; color:#FF3D14;
+      text-shadow:0 2px 4px rgba(0,0,0,0.7);
+    }
+    body.light h1 { text-shadow:none; }
+
+    /* Search + toggle */
+    #controls {
+      display:flex; justify-content:center; align-items:center;
+      gap:12px; margin-bottom:20px;
+    }
+    #search {
+      padding:8px 12px; font-size:1rem; width:250px;
+      border-radius:4px; border:1px solid #888;
+    }
+    body.light #search { border:1px solid #ccc; }
+    #theme-btn {
+      padding:8px 12px; font-size:1rem;
+      background:#222; color:#fff; border:none; border-radius:4px;
+      cursor:pointer;
+    }
+    body.light #theme-btn {
+      background:#ddd; color:#222;
+    }
+
+    /* Table container */
+    #table_div {
+      margin:0 auto;
+      width:75%; max-width:700px;
+      max-height:70vh; overflow-y:auto; overflow-x:hidden;
+      background:rgba(26,26,26,0.9);
+      border:1px solid #B9C1C1; border-radius:12px;
+      padding:10px; box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      transition:background .3s, border .3s;
+    }
+    body.light #table_div {
+      background:#fff; border:1px solid #ccc;
+    }
+    /* Chart styling */
+    .google-visualization-table-th {
+      background:#FF3D14!important; color:#fff!important;
+      font-weight:700!important; font-size:1.1rem!important;
+      text-align:center!important; padding:12px 16px!important;
+    }
+    body.light .google-visualization-table-th {
+      background:#FF3D14!important;
+    }
+    .google-visualization-table-tr-even { background:#1E1E1E!important; }
+    .google-visualization-table-tr-odd  { background:#181818!important; }
+    body.light .google-visualization-table-tr-even { background:#f9f9f9!important; }
+    body.light .google-visualization-table-tr-odd  { background:#eaeaea!important; }
+    .google-visualization-table-td {
+      padding:12px 16px!important; border-bottom:1px solid #333!important;
+      white-space:nowrap;
+    }
+    body.light .google-visualization-table-td {
+      border-bottom:1px solid #ccc!important;
+    }
+    #table_div table { border-collapse:separate; border-spacing:0; }
+    #table_div thead th { position:sticky; top:0; z-index:2; }
+
+    /* Mobile tweaks */
+    @media (max-width:768px) {
+      #table_div { width:90%; }
+      #search { width:80%; }
+    }
+  </style>
+</head>
 <body>
-  <button id="theme-toggle">Toggle</button>
-  <h1>375yap Leaderboard</h1>
-  <input id="search" placeholder="🔍 Search username…" />
+  <div class="header-wrapper">
+    <h1>375yap Leaderboard</h1>
+  </div>
+
+  <div id="controls">
+    <input id="search" type="text" placeholder="🔍 Search username…" oninput="onSearch(event)">
+    <button id="theme-btn" onclick="toggleTheme()">Light Mode</button>
+  </div>
+
   <div id="table_div"></div>
 </body>
 </html>
