@@ -174,8 +174,8 @@
       const tbody = table.createTBody();
       top50.forEach((r,i)=>{
         const row = tbody.insertRow();
-        // rank with single dot
-        row.insertCell().textContent = (i+1) + '.';
+        // rank
+        row.insertCell().textContent = i+1;
         // user + pfp
         const cu = row.insertCell();
         const img = document.createElement('img');
@@ -183,15 +183,17 @@
         img.className = 'pfp';
         cu.appendChild(img);
         cu.appendChild(document.createTextNode(r.u));
-        // points fixed to 2 decimals
+        // points fixed 2 decimals
         row.insertCell().textContent = r.pts.toFixed(2);
         // spacer
         row.insertCell();
       });
       div.appendChild(table);
 
+      // search hook
       if(all.length>50){
-        document.getElementById('search-container').style.display='block';
+        const sc = document.getElementById('search-container');
+        sc.style.display='block';
         document.getElementById('search-button').onclick=()=>{
           const q=document.getElementById('search-input').value.trim().toLowerCase();
           const found=all.find(x=>x.u.toLowerCase()===q);
