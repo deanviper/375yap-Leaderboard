@@ -4,157 +4,189 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto -->
+  <!-- Roboto Font -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #fff;
+      --fg: #111;
+      --panel-bg: #f9f9f9;
+      --table-bg: rgba(255,255,255,0.9);
+      --header-color: #FF3D14;
+      --row-even: #f0f0f0;
+      --row-odd: #e6e6e6;
+    }
+    [data-theme="dark"] {
+      --bg: #050607;
+      --fg: #B9C1C1;
+      --panel-bg: #1A1A1A;
+      --table-bg: rgba(26,26,26,0.9);
+      --row-even: #1E1E1E;
+      --row-odd: #181818;
+    }
+
+    * { box-sizing: border-box; margin:0; padding:0 }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Roboto', sans-serif;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    #theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--panel-bg);
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--header-color);
+      margin-bottom: 16px;
+    }
+
+    #search {
+      display: block;
+      margin: 0 auto 16px;
+      padding: 8px 12px;
+      width: 90%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    #table_div {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--table-bg);
+      border: 1px solid #B9C1C1;
+      border-radius: 8px;
+      overflow-y: auto;
+      max-height: 60vh;
+      padding: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* avatar + username cell */
+    .user-cell {
+      display: flex;
+      align-items: center;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      margin-right: 8px;
+      object-fit: cover;
+    }
+
+    /* Google Table overrides */
+    .google-visualization-table-th {
+      background: var(--header-color) !important;
+      color: #fff !important;
+      font-weight: 700 !important;
+      text-align: center !important;
+      padding: 12px !important;
+    }
+    .google-visualization-table-td {
+      padding: 12px !important;
+      border-bottom: 1px solid #333 !important;
+      white-space: nowrap;
+    }
+    .google-visualization-table-tr-even { background: var(--row-even) !important; }
+    .google-visualization-table-tr-odd  { background: var(--row-odd)  !important; }
+    #table_div table { border-collapse: separate; border-spacing: 0; }
+    #table_div thead th { position: sticky; top: 0; z-index: 2; }
+  </style>
+
+  <!-- Google Charts loader -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
   <script>
-    // 1) load the table package
-    google.charts.load('current',{packages:['table']});
-    google.charts.setOnLoadCallback(drawTable);
+    // Theme toggle
+    let dark = localStorage.getItem('theme') === 'dark';
+    function applyTheme() {
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.getElementById('theme-toggle').textContent = dark ? 'Light Mode' : 'Dark Mode';
+    }
+    function toggleTheme() {
+      dark = !dark;
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+      applyTheme();
+    }
 
-    function drawTable() {
-      // 2) point this to your published sheet & Temporary LB sheet
-      const q = new google.visualization.Query(
+    // Load & draw
+    google.charts.load('current',{packages:['table']});
+    google.charts.setOnLoadCallback(draw);
+
+    function draw() {
+      applyTheme();
+      document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+      const query = new google.visualization.Query(
         'https://docs.google.com/spreadsheets/d/1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE/gviz/tq'
-        + '?sheet=Temporary%20LB&headers=1&tq=select%20F%2C%20A%2C%20B'
+        + '?gid=0&headers=1&tq=' + encodeURIComponent('select F, A, B')
       );
-      q.send(res => {
+
+      query.send(res => {
         if (res.isError()) {
-          document.body.innerHTML = '<p style="color:#FF3D14">Error: '+res.getMessage()+'</p>';
+          document.getElementById('table_div').innerHTML =
+            `<p style="color:red">Error: ${res.getMessage()}</p>`;
           return;
         }
 
-        const data = res.getDataTable();
+        const raw = res.getDataTable();
+        const data = new google.visualization.DataTable();
+        data.addColumn('string','User');
+        data.addColumn('number','Points');
 
-        // 3) turn that URL column into HTML <img> + username
-        //    remove the raw col, add an HTML col:
-        const htmlTbl = new google.visualization.DataTable();
-        htmlTbl.addColumn('string','Profile');
-        htmlTbl.addColumn('string','Username');
-        htmlTbl.addColumn('number','Points');
-        htmlTbl.addColumn({type:'string', role:'annotation'});
-        for (let i=0; i<data.getNumberOfRows(); i++) {
-          const pfp = data.getValue(i,0);
-          const user = data.getValue(i,1);
-          const pts = data.getValue(i,2);
-          const imgTag = `<div style="display:flex;align-items:center">
-                              <img src="${pfp}" 
-                                   style="width:24px;height:24px;border-radius:50%;margin-right:8px"
-                                   onerror="this.src='';" />
-                            </div>`;
-          htmlTbl.addRow([imgTag, user, pts, null]);
+        // build rows
+        for (let r = 0; r < raw.getNumberOfRows() && r < 50; r++) {
+          const img = raw.getValue(r, 0);
+          const user = raw.getValue(r, 1);
+          const pts = parseFloat(raw.getValue(r, 2)) || 0;
+          const pts2 = Math.round(pts * 100) / 100;
+          const html =
+            `<div class="user-cell">
+               <img class="avatar" src="${img}" alt="">
+               <span>${user}</span>
+             </div>`;
+          data.addRow([ html, pts2 ]);
         }
 
-        // 4) format points to exactly 2 decimals
-        const fmt = new google.visualization.NumberFormat({pattern:'#,##0.00'});
-        fmt.format(htmlTbl, 2);
+        const table = new google.visualization.Table(document.getElementById('table_div'));
+        table.draw(data, { allowHtml: true, width: '100%', height: '100%' });
 
-        // 5) draw with HTML enabled
-        const table = new google.visualization.Table(
-          document.getElementById('table_div')
-        );
-        table.draw(htmlTbl, {
-          allowHtml: true,
-          showRowNumber: false,
-          width: '100%'
+        // search‐filter
+        document.getElementById('search').addEventListener('input', e => {
+          const q = e.target.value.toLowerCase();
+          const filt = new google.visualization.DataTable();
+          filt.addColumn('string','User');
+          filt.addColumn('number','Points');
+          for (let i = 0; i < data.getNumberOfRows(); i++) {
+            const txt = data.getValue(i,0).toLowerCase();
+            if (txt.includes(q)) {
+              filt.addRow([ data.getValue(i,0), data.getValue(i,1) ]);
+            }
+          }
+          table.draw(filt, { allowHtml:true, width:'100%', height:'100%' });
         });
       });
     }
   </script>
-
-  <style>
-    body {
-      margin:0; padding:40px 0;
-      background:var(--bg);
-      font-family:'Roboto',sans-serif;
-      color:var(--fg);
-      text-align:center;
-      transition:background .3s,color .3s;
-    }
-    :root {
-      --bg: linear-gradient(135deg,#050607,#1A1A1A);
-      --fg: #B9C1C1;
-    }
-    [data-theme=light] {
-      --bg: #fff;
-      --fg: #111;
-    }
-
-    /* header + toggle wrapper */
-    .header-wrapper {
-      max-width:700px;
-      margin:0 auto 20px;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-    h1 {
-      margin:0;
-      font-size:2.5rem;
-      color:#FF3D14;
-      text-shadow:0 2px 4px rgba(0,0,0,0.7);
-      flex:1;
-    }
-
-    /* table container */
-    #table-container {
-      max-width:700px;
-      margin:0 auto;
-      padding:0 20px;
-    }
-    #table_div {
-      max-height:70vh;
-      overflow-y:auto;
-      background:rgba(26,26,26,0.9);
-      border:1px solid #B9C1C1;
-      border-radius:12px;
-      box-shadow:0 8px 24px rgba(0,0,0,0.5);
-    }
-
-    /* chart headers */
-    .google-visualization-table-th {
-      background:#FF3D14!important;
-      color:#fff!important;
-      font-weight:700!important;
-      font-size:1.1rem!important;
-      text-align:center!important;
-      padding:12px 16px!important;
-    }
-    .google-visualization-table-tr-even { background:#1E1E1E!important; }
-    .google-visualization-table-tr-odd  { background:#181818!important; }
-    .google-visualization-table-td {
-      padding:12px 16px!important;
-      border-bottom:1px solid #333!important;
-      text-align:center!important;
-      white-space:nowrap;
-    }
-    #table_div table { border-collapse:separate; border-spacing:0; }
-    #table_div thead th { position:sticky; top:0; z-index:2; }
-
-    /* responsive */
-    @media (max-width:768px) {
-      #table_div { overflow-x:auto; }
-    }
-  </style>
 </head>
-<body data-theme="dark">
-  <div class="header-wrapper">
-    <h1>375yap Leaderboard</h1>
-    <!-- toggle you already have -->
-    <button id="themeToggle">☀️/🌙</button>
-  </div>
 
-  <div id="table-container">
-    <div id="table_div"></div>
-  </div>
-
-  <script>
-    // simple light/dark toggle
-    const btn = document.getElementById('themeToggle');
-    btn.onclick = () => {
-      document.body.dataset.theme =
-        document.body.dataset.theme === 'light' ? 'dark' : 'light';
-    };
-  </script>
+<body>
+  <button id="theme-toggle">Toggle</button>
+  <h1>375yap Leaderboard</h1>
+  <input id="search" placeholder="🔍 Search username…" />
+  <div id="table_div"></div>
 </body>
 </html>
