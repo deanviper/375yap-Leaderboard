@@ -4,236 +4,157 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto & Charts loader -->
+  <!-- Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script>
+    // 1) load the table package
+    google.charts.load('current',{packages:['table']});
+    google.charts.setOnLoadCallback(drawTable);
+
+    function drawTable() {
+      // 2) point this to your published sheet & Temporary LB sheet
+      const q = new google.visualization.Query(
+        'https://docs.google.com/spreadsheets/d/1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE/gviz/tq'
+        + '?sheet=Temporary%20LB&headers=1&tq=select%20F%2C%20A%2C%20B'
+      );
+      q.send(res => {
+        if (res.isError()) {
+          document.body.innerHTML = '<p style="color:#FF3D14">Error: '+res.getMessage()+'</p>';
+          return;
+        }
+
+        const data = res.getDataTable();
+
+        // 3) turn that URL column into HTML <img> + username
+        //    remove the raw col, add an HTML col:
+        const htmlTbl = new google.visualization.DataTable();
+        htmlTbl.addColumn('string','Profile');
+        htmlTbl.addColumn('string','Username');
+        htmlTbl.addColumn('number','Points');
+        htmlTbl.addColumn({type:'string', role:'annotation'});
+        for (let i=0; i<data.getNumberOfRows(); i++) {
+          const pfp = data.getValue(i,0);
+          const user = data.getValue(i,1);
+          const pts = data.getValue(i,2);
+          const imgTag = `<div style="display:flex;align-items:center">
+                              <img src="${pfp}" 
+                                   style="width:24px;height:24px;border-radius:50%;margin-right:8px"
+                                   onerror="this.src='';" />
+                            </div>`;
+          htmlTbl.addRow([imgTag, user, pts, null]);
+        }
+
+        // 4) format points to exactly 2 decimals
+        const fmt = new google.visualization.NumberFormat({pattern:'#,##0.00'});
+        fmt.format(htmlTbl, 2);
+
+        // 5) draw with HTML enabled
+        const table = new google.visualization.Table(
+          document.getElementById('table_div')
+        );
+        table.draw(htmlTbl, {
+          allowHtml: true,
+          showRowNumber: false,
+          width: '100%'
+        });
+      });
+    }
+  </script>
+
   <style>
-    :root {
-      --bg: #050607;
-      --text: #B9C1C1;
-      --panel-bg: rgba(26,26,26,0.9);
-      --border: #B9C1C1;
-      --orange: #FF3D14;
-    }
-    .light {
-      --bg: #fff;
-      --text: #000;
-      --panel-bg: #f5f5f5;
-      --border: #ccc;
-      --orange: #FF3D14;
-    }
-
-    * { box-sizing:border-box; margin:0; padding:0; }
     body {
-      background: var(--bg);
-      color: var(--text);
+      margin:0; padding:40px 0;
+      background:var(--bg);
       font-family:'Roboto',sans-serif;
-      transition: background .3s, color .3s;
-    }
-    button { cursor:pointer; border:none; background:none; }
-
-    #mode-toggle {
-      position: fixed;
-      top:12px; right:12px;
-      font-size:1.4rem;
-      color: var(--orange);
-      z-index:1000;
-    }
-
-    .container {
-      max-width:1200px;
-      margin:0 auto;
-      padding:2rem 1rem 4rem;
+      color:var(--fg);
       text-align:center;
+      transition:background .3s,color .3s;
     }
-    .title {
-      font-size:2.5rem;
-      color: var(--orange);
-      margin-bottom:1rem;
-      text-shadow:0 2px 4px rgba(0,0,0,.7);
+    :root {
+      --bg: linear-gradient(135deg,#050607,#1A1A1A);
+      --fg: #B9C1C1;
+    }
+    [data-theme=light] {
+      --bg: #fff;
+      --fg: #111;
     }
 
-    /* Dashboard = table + (no legend) */
-    .dashboard {
+    /* header + toggle wrapper */
+    .header-wrapper {
+      max-width:700px;
+      margin:0 auto 20px;
       display:flex;
       justify-content:center;
-      padding:0 20px;
-      /* shift left 20% on desktop */
-      padding-left:20vw;
+      align-items:center;
     }
-    .table-wrapper {
+    h1 {
+      margin:0;
+      font-size:2.5rem;
+      color:#FF3D14;
+      text-shadow:0 2px 4px rgba(0,0,0,0.7);
       flex:1;
-      max-width:700px;
-      width:75%;
-    }
-    #search-container {
-      margin-bottom:.75rem;
-      display:none;
-    }
-    #search-input {
-      width:60%;
-      max-width:300px;
-      padding:6px 8px;
-      border:1px solid var(--border);
-      border-radius:4px;
-      margin-right:4px;
-    }
-    #search-button {
-      padding:6px 12px;
-      background: var(--orange);
-      color:#fff;
-      border-radius:4px;
     }
 
-    /* Table */
-    #table_div table {
-      width:100%;
-      border-collapse:collapse;
-      background: var(--panel-bg);
-      border:1px solid var(--border);
-      border-radius:8px;
-      overflow:hidden;
+    /* table container */
+    #table-container {
+      max-width:700px;
+      margin:0 auto;
+      padding:0 20px;
     }
-    #table_div th, #table_div td {
-      padding:.75rem 1rem;
-      font-size:.95rem;
+    #table_div {
+      max-height:70vh;
+      overflow-y:auto;
+      background:rgba(26,26,26,0.9);
+      border:1px solid #B9C1C1;
+      border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    /* chart headers */
+    .google-visualization-table-th {
+      background:#FF3D14!important;
+      color:#fff!important;
+      font-weight:700!important;
+      font-size:1.1rem!important;
+      text-align:center!important;
+      padding:12px 16px!important;
+    }
+    .google-visualization-table-tr-even { background:#1E1E1E!important; }
+    .google-visualization-table-tr-odd  { background:#181818!important; }
+    .google-visualization-table-td {
+      padding:12px 16px!important;
+      border-bottom:1px solid #333!important;
+      text-align:center!important;
       white-space:nowrap;
     }
-    #table_div thead {
-      background: var(--orange);
-      color:#fff;
-    }
-    #table_div th:nth-child(2),
-    #table_div td:nth-child(2) {
-      text-align:right;
-    }
-    #table_div th:nth-child(3),
-    #table_div td:nth-child(3) {
-      text-align:center;
-    }
-    #table_div tbody tr:nth-child(odd) {
-      background:#1E1E1E;
-    }
-    .pfp {
-      width:24px; height:24px;
-      border-radius:50%;
-      vertical-align:middle;
-      margin-right:.5rem;
-    }
+    #table_div table { border-collapse:separate; border-spacing:0; }
+    #table_div thead th { position:sticky; top:0; z-index:2; }
 
+    /* responsive */
     @media (max-width:768px) {
-      .dashboard {
-        flex-direction:column;
-        padding-left:0;
-      }
-      .table-wrapper {
-        width:100%;
-        max-width:600px;
-      }
-      /* keep mobile scrollable horizontally */
       #table_div { overflow-x:auto; }
     }
   </style>
 </head>
-<body>
-  <button id="mode-toggle">🌙</button>
-  <div class="container">
-    <h1 class="title">375yap Leaderboard</h1>
-    <div class="dashboard">
-      <div class="table-wrapper">
-        <div id="search-container">
-          <input id="search-input" placeholder="Search username…" />
-          <button id="search-button">Go</button>
-        </div>
-        <div id="table_div"></div>
-      </div>
-    </div>
+<body data-theme="dark">
+  <div class="header-wrapper">
+    <h1>375yap Leaderboard</h1>
+    <!-- toggle you already have -->
+    <button id="themeToggle">☀️/🌙</button>
+  </div>
+
+  <div id="table-container">
+    <div id="table_div"></div>
   </div>
 
   <script>
-    // Dark/light toggle
-    google.charts.load('current',{packages:['table']}); // also loads charts
-    const root = document.documentElement;
-    const saved = localStorage.getItem('mode') || 'dark';
-    root.classList.add(saved);
-    document.getElementById('mode-toggle').textContent = saved==='dark'?'🌞':'🌙';
-    document.getElementById('mode-toggle').onclick = () => {
-      const now = root.classList.contains('dark') ? 'light' : 'dark';
-      root.classList.toggle('dark');
-      root.classList.toggle('light');
-      localStorage.setItem('mode', now);
-      document.getElementById('mode-toggle').textContent = now==='dark'?'🌞':'🌙';
+    // simple light/dark toggle
+    const btn = document.getElementById('themeToggle');
+    btn.onclick = () => {
+      document.body.dataset.theme =
+        document.body.dataset.theme === 'light' ? 'dark' : 'light';
     };
-
-    // once charts loaded, kick off data load
-    google.charts.setOnLoadCallback(loadData);
-
-    function loadData() {
-      const SHEET = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
-      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET}/gviz/tq?`;
-      let pfpMap = {};
-
-      // 1) PFPs from gid=0
-      new google.visualization.Query(BASE+'gid=0&headers=1&tq=select%20A%2C%20F')
-        .send(res => {
-          const dt = res.getDataTable();
-          for (let i=0; i<dt.getNumberOfRows(); i++) {
-            pfpMap[dt.getValue(i,0)] = dt.getValue(i,1);
-          }
-          loadLB(pfpMap);
-        });
-    }
-
-    function loadLB(pfpMap) {
-      const SHEET = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
-      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET}/gviz/tq?sheet=Temporary%20LB&headers=1&tq=select%20A%2C%20B%20order%20by%20B%20desc`;
-      new google.visualization.Query(BASE)
-        .send(res => {
-          const dt = res.getDataTable();
-          const all = [];
-          for (let i=0; i<dt.getNumberOfRows(); i++) {
-            all.push({u:dt.getValue(i,0), pts:dt.getValue(i,1)});
-          }
-          draw(all, pfpMap);
-        });
-    }
-
-    function draw(all, pfpMap) {
-      const top50 = all.slice(0,50);
-      const div = document.getElementById('table_div');
-      div.innerHTML = '';
-      const tbl = document.createElement('table');
-      const thead = tbl.createTHead().insertRow();
-      ['Username','Points',''].forEach(t=>{
-        const th = document.createElement('th');
-        th.textContent = t;
-        thead.appendChild(th);
-      });
-      const tbody = tbl.createTBody();
-      top50.forEach(r=>{
-        const row = tbody.insertRow();
-        const u = row.insertCell();
-        const img = document.createElement('img');
-        img.src = pfpMap[r.u]||'';
-        img.className = 'pfp';
-        u.appendChild(img);
-        u.appendChild(document.createTextNode(r.u));
-        row.insertCell().textContent = r.pts;
-        row.insertCell(); // empty for alignment
-      });
-      div.appendChild(tbl);
-
-      // search if >50
-      if (all.length>50) {
-        document.getElementById('search-container').style.display = 'block';
-        document.getElementById('search-button').onclick = () => {
-          const q = document.getElementById('search-input').value.trim().toLowerCase();
-          const found = all.find(x=>x.u.toLowerCase()===q);
-          if (!found) return alert('User not found');
-          draw([found], pfpMap);
-        };
-      }
-    }
   </script>
 </body>
 </html>
