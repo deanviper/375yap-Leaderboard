@@ -4,138 +4,212 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
-    * { box-sizing:border-box; margin:0; padding:0 }
     body {
+      margin:0;
+      padding:20px 0;
       font-family:'Roboto',sans-serif;
-      background:#050607; color:#B9C1C1;
-      padding:20px; text-align:center;
+      background:var(--bg);
+      color:var(--fg);
+      transition:background .3s,color .3s;
     }
-    .light body {
-      background:#fff; color:#111;
+    :root {
+      --bg:#050607;
+      --fg:#E0E0E0;
+      --card-bg:rgba(26,26,26,0.9);
+      --th-bg:#FF3D14;
+      --td-even:#1E1E1E;
+      --td-odd:#181818;
     }
-    #theme-btn {
-      position:fixed; top:16px; right:16px;
-      background:none; border:1px solid #B9C1C1;
-      color:inherit; padding:8px 12px; cursor:pointer;
+    .light {
+      --bg:#F5F6F7;
+      --fg:#333;
+      --card-bg:#FFF;
+      --th-bg:#222;
+      --td-even:#EEE;
+      --td-odd:#FFF;
+    }
+    .container {
+      max-width:800px;
+      margin:0 auto;
+      text-align:center;
+    }
+    h1 {
+      margin-bottom:10px;
+      color:#FF3D14;
+      font-size:2.5rem;
+      text-shadow:0 2px 4px rgba(0,0,0,0.5);
+    }
+    #toggles {
+      position:absolute;
+      top:20px; right:20px;
+    }
+    #toggles button {
+      background:none;
+      border:1px solid var(--fg);
+      color:var(--fg);
+      padding:6px 10px;
       border-radius:4px;
+      cursor:pointer;
+      font-size:0.9rem;
     }
-    .light #theme-btn { border-color:#333; }
-    h1 { color:#FF3D14; margin-bottom:16px; }
     #search {
-      padding:8px 12px; width:250px; max-width:80%;
-      margin-bottom:16px; border:1px solid #666; border-radius:4px;
+      width:250px;
+      padding:8px 12px;
+      font-size:1rem;
+      border:1px solid var(--fg);
+      border-radius:4px;
+      margin-bottom:12px;
+      color:var(--fg);
+      background:transparent;
     }
-    .light #search { border:1px solid #ccc; }
-    #table_div {
-      margin:0 auto; width:75%; max-width:700px;
-      max-height:60vh; overflow-y:auto;
-      background:rgba(26,26,26,0.9); border:1px solid #B9C1C1;
-      border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.5);
+    #leaderboard {
+      width:100%;
+      background:var(--card-bg);
+      border:1px solid var(--fg);
+      border-radius:8px;
+      overflow:auto;
+      max-height:60vh;
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      margin:0 auto;
     }
-    .google-visualization-table-th {
-      background:#FF3D14!important; color:#fff!important;
-      font-weight:700!important; text-align:center!important;
+    table {
+      border-collapse:collapse;
+      width:100%;
+      table-layout:fixed;
     }
-    .google-visualization-table-tr-even { background:#1E1E1E!important; }
-    .google-visualization-table-tr-odd  { background:#181818!important; }
-    .google-visualization-table-td {
-      padding:12px!important; white-space:nowrap!important;
-      text-align:center!important;
+    th,td {
+      padding:12px;
+      text-align:left;
+      white-space:nowrap;
     }
-    .user-cell { display:flex; align-items:center; justify-content:center; }
-    .user-cell img {
-      width:32px; height:32px; border-radius:50%;
-      margin-right:8px; object-fit:cover;
+    th {
+      background:var(--th-bg);
+      color:#fff;
+      position:sticky;
+      top:0;
+      z-index:1;
+      font-weight:700;
     }
-    @media(max-width:768px) {
-      #table_div { width:90%; }
+    tbody tr:nth-child(even) td { background:var(--td-even); }
+    tbody tr:nth-child(odd)  td { background:var(--td-odd);  }
+    .pfp {
+      width:32px; height:32px;
+      border-radius:50%;
+      vertical-align:middle;
+      margin-right:8px;
+    }
+    .points {
+      text-align:right;
+      font-variant-numeric:tabular-nums;
     }
   </style>
 </head>
 <body>
-  <button id="theme-btn">☀️/🌙</button>
-  <h1>375yap Leaderboard</h1>
-  <input id="search" placeholder="🔍 Search username…" />
+  <div id="toggles">
+    <button id="theme-toggle">🌙</button>
+  </div>
 
-  <div id="table_div"></div>
+  <div class="container">
+    <h1>375yap Leaderboard</h1>
+    <input id="search" type="search" placeholder="🔍 Search username…">
+    <div id="leaderboard">
+      <table>
+        <thead>
+          <tr><th>User</th><th style="width:80px">Points</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
 
   <script>
-    google.charts.load('current',{packages:['table']});
-    google.charts.setOnLoadCallback(init);
+    // your published spreadsheet's "e/…/pubhtml" ID:
+    const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
 
-    // toggle light/dark
-    const btn = document.getElementById('theme-btn');
-    btn.addEventListener('click',()=>{
-      document.documentElement.classList.toggle('light');
+    // helper to fetch any sheet via Gviz
+    async function fetchSheet(sheetName, cols) {
+      const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&headers=1&tq=${encodeURIComponent('select '+cols.join(','))}`;
+      const res = await fetch(url);
+      const txt = await res.text();
+      // strip the "google.visualization.Query.setResponse(...)" wrapper
+      const json = JSON.parse(txt.match(/setResponse\(([\s\S]+)\);/)[1]);
+      return google.visualization.arrayToDataTable(json.table.rows.map(r=>r.c.map(c=>c&&c.v)), json.table.cols.map(c=>c.label));
+    }
+
+    async function build() {
+      // load google charts just so we get arrayToDataTable helper:
+      await new Promise(r=>google.charts.load('current')).then(()=>google.charts.setOnLoadCallback(r));
+      // fetch both sheets
+      const [sheet1, tempLB] = await Promise.all([
+        fetchSheet('Sheet1', ['B','F']),
+        fetchSheet('Temporary LB', ['A','B'])
+      ]);
+
+      // map username→pfp
+      const pfpMap = {};
+      for(let i=0; i<sheet1.getNumberOfRows(); i++) {
+        const u = sheet1.getValue(i,0);
+        const url = sheet1.getValue(i,1);
+        if(u && url) pfpMap[u] = url;
+      }
+
+      // build full dataset [u,points,pfp]
+      const data = [];
+      for(let i=0; i<tempLB.getNumberOfRows(); i++) {
+        const u = tempLB.getValue(i,0);
+        let p = parseFloat(tempLB.getValue(i,1])||0;
+        p = Math.round(p*100)/100; // two decimals
+        data.push([u,p,pfpMap[u]||'']);
+      }
+
+      // sort desc by points
+      data.sort((a,b)=>b[1]-a[1]);
+
+      window.fullData = data;
+      renderTable(data.slice(0,50));
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = '';
+      for(let [u,p,src] of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            ${src?`<img src="${src}" class="pfp">`:''}
+            ${u}
+          </td>
+          <td class="points">${p.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('search').addEventListener('input', e=>{
+      const q = e.target.value.trim().toLowerCase();
+      if(!q) return renderTable(window.fullData.slice(0,50));
+      // if below top 50, show just them
+      const found = window.fullData.find(r=>r[0].toLowerCase()===q);
+      if(found) return renderTable([found]);
+      // else, no match
+      document.getElementById('rows').innerHTML = `<tr><td colspan=2>No user found.</td></tr>`;
     });
 
-    function init() {
-      const SHEET_ID = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
-      const BASE = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK/gviz/tq?`;
+    // theme toggle
+    const btn = document.getElementById('theme-toggle');
+    btn.onclick = ()=>{
+      document.body.classList.toggle('light');
+      btn.textContent = document.body.classList.contains('light') ? '🌞' : '🌙';
+    };
 
-      // 1) fetch PFPs+timestamps from first sheet (gid=0)
-      new google.visualization.Query(BASE+'gid=0&headers=1&tq='+encodeURIComponent('select B,E,F'))
-        .send(res => {
-          const dt = res.getDataTable();
-          const pfpMap = {};
-          for (let i=0;i<dt.getNumberOfRows();i++) {
-            const user = dt.getValue(i,0);
-            const time = new Date(dt.getValue(i,1)).getTime();
-            const url  = dt.getValue(i,2);
-            if (!pfpMap[user] || time>pfpMap[user].time) {
-              pfpMap[user] = { url, time };
-            }
-          }
-          fetchLeaderboard(pfpMap);
-        });
-    }
-
-    function fetchLeaderboard(pfpMap) {
-      const BASE = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK/gviz/tq?`;
-      // 2) fetch Temporary LB (Username A, Points B)
-      new google.visualization.Query(BASE+'sheet=Temporary%20LB&headers=1&tq='+encodeURIComponent('select A,B order by B desc'))
-        .send(res => {
-          const dt = res.getDataTable();
-          render(dt, pfpMap);
-        });
-    }
-
-    function render(dt, pfpMap) {
-      const rows = [];
-      for (let i=0;i<dt.getNumberOfRows()&&i<50;i++) {
-        rows.push({
-          user: dt.getValue(i,0),
-          pts: parseFloat(dt.getValue(i,1)).toFixed(2),
-          pfp: (pfpMap[dt.getValue(i,0)]||{}).url || ''
-        });
-      }
-      const data = new google.visualization.DataTable();
-      data.addColumn('string','Player');
-      data.addColumn('number','Points');
-      rows.forEach(r => {
-        const html = `<div class="user-cell">
-                        <img src="${r.pfp}" onerror="this.src='';"/>
-                        <span>${r.user}</span>
-                      </div>`;
-        data.addRow([ html, Number(r.pts) ]);
-      });
-
-      const table = new google.visualization.Table(document.getElementById('table_div'));
-      table.draw(data,{ allowHtml:true, width:'100%', height:'100%' });
-
-      // search
-      document.getElementById('search').oninput = e => {
-        const q = e.target.value.toLowerCase();
-        const trs = document.querySelectorAll('#table_div tbody tr');
-        trs.forEach(tr=>{
-          const name = tr.cells[0].textContent.toLowerCase();
-          tr.style.display = name.includes(q)?'':'none';
-        });
-      };
-    }
+    build().catch(e=>{
+      console.error(e);
+      document.getElementById('leaderboard').innerHTML = `<p style="color:#FF3D14">Error loading data.</p>`;
+    });
   </script>
 </body>
 </html>
