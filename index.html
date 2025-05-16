@@ -1,666 +1,288 @@
-  <script>
-    (()=>{
-      // Configuration
-      let PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-      let GID    = '412750346'; // Leaderboard sheet gid
-      let QUERY  = 'select C,A,B order by B desc';
-      
-      // DOM Elements
-      const tableBody = document.querySelector('#lbTable tbody');
-      const searchInput = document.getElementById('search');
-      const statusBar = document.getElementById('statusBar');
-      const debugInfo = document.getElementById('debugInfo');
-      const debugBtn = document.getElementById('debugBtn');
-      const testConnBtn = document.getElementById('testConnBtn');
-      const configBtn = document.getElementById('configBtn');
-      const configPanel = document.getElementById('configPanel');
-      const configCloseBtn = document.getElementById('configCloseBtn');
-      const applyConfigBtn = document.getElementById('applyConfigBtn');
-      const pubIdInput = document.getElementById('pubIdInput');
-      const gidInput = document.getElementById('gidInput');
-      const queryInput = document.getElementById('queryInput');
-      
-      // State
-      let allData = []; // full [ { pfp, user, pts } ]
-      let debugData = {};
-      
-      // Helpers
-      function formatPts(n) {
-        return (typeof n==='number' ? n.toFixed(2) : n).toString();
-      }
-      
-      function showStatus(message, type = 'info') {
-        statusBar.textContent = message;
-        statusBar.className = 'status-bar ' + type;
-        
-        // Auto-hide success messages after 5 seconds
-        if (type === 'success') {
-          setTimeout(() => {
-            if (statusBar.textContent === message) {
-              statusBar.style.display = 'none';
-            }
-          }, 5000);
-        }
-      }
-      
-      function hideStatus() {
-        statusBar.style.display = 'none';
-      }
-      
-      function updateDebugInfo() {
-        debugInfo.innerHTML = JSON.stringify({
-          config: {
-            pubId: PUB_ID,
-            gid: GID,
-            query: QUERY,
-            url: getSheetUrl()
-          },
-          status: debugData
-        }, null, 2);
-      }
-      
-      function getSheetUrl() {
-        return `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}`
-                + `&headers=1&tq=${encodeURIComponent(QUERY)}`
-                + '&tqx=out:json';
-      }
-
-      function render(rows) {
-        tableBody.innerHTML = '';
-        if (!rows.length) {
-          let tr = document.createElement('tr'),
-              td = document.createElement('td');
-          td.colSpan = 2;
-          td.textContent = 'No results.';
-          tr.append(td);
-          tableBody.append(tr);
-          return;
-        }
-        rows.forEach(({pfp,user,pts})=>{
-          let tr = document.createElement('tr');
-          let tdUser = document.createElement('td'),
-              tdPts  = document.createElement('td');
-          let img = document.createElement('img');
-          img.src = pfp;
-          img.className = 'pfp';
-          img.onerror = ()=>{ img.style.display='none' };
-          tdUser.append(img, user);
-          tdPts.textContent = formatPts(pts);
-          tr.append(tdUser, tdPts);
-          tableBody.append(tr);
-        });
-      }
-      
-      function showLoadingState() {
-        tableBody.innerHTML = `<tr><td colspan="2"><div class="spinner"></div> Loading…</td></tr>`;
-      }
-      
-      function showError(message) {
-        tableBody.innerHTML = `<tr>
-          <td colspan="2" style="color: var(--error);">
-            ${message}
-          </td>
-        </tr>`;
-      }
-      
-      async function fetchLeaderboardData() {
-        showLoadingState();
-        hideStatus();
-        
-        try {
-          const url = getSheetUrl();
-          debugData = {
-            fetchStarted: new Date().toISOString(),
-            url: url
-          };
-          
-          // First check if Google Sheets is accessible
-          const googleCheck = await fetch('https://docs.google.com/', {
-            method: 'HEAD',
-            mode: 'no-cors'
-          }).catch(err => {
-            debugData.googleConnectError = err.message;
-            throw new Error('Cannot connect to Google. Check your internet connection.');
-          });
-          
-          debugData.googleAccessible = true;
-          
-          // Now try to get the actual sheet data
-          const response = await fetch(url);
-          debugData.fetchStatus = response.status;
-          debugData.fetchStatusText = response.statusText;
-          
-          if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-          }
-          
-          const text = await response.text();
-          debugData.responseLength = text.length;
-          
-          // Google's API returns JSON wrapped in a text prefix we need to remove
-          const jsonStart = text.indexOf('{');
-          const jsonEnd = text.lastIndexOf('}') + 1;<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto font -->
+  <!-- Roboto & Google Charts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
     :root {
       --bg: #050607;
-      --bg-alt: #1A1A1A;
-      --fg: #E0E0E0;
-      --accent: #FF3D14;
-      --accent-light: #FF6242;
-      --table-bg: rgba(26,26,26,0.9);
-      --scrollbar-bg: #333;
-      --scrollbar-thumb: #555;
-      --error: #FF3D14;
-      --warning: #FFC107;
-      --success: #4CAF50;
-      --input-bg: rgba(0,0,0,0.2);
+      --text: #B9C1C1;
+      --panel-bg: rgba(26,26,26,0.9);
+      --border: #B9C1C1;
+      --orange: #FF3D14;
     }
+    .light {
+      --bg: #fff;
+      --text: #000;
+      --panel-bg: #f5f5f5;
+      --border: #ccc;
+      --orange: #FF3D14;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
     body {
-      margin:0; padding:40px;
+      background: var(--bg);
+      color: var(--text);
       font-family:'Roboto',sans-serif;
-      background: linear-gradient(135deg, var(--bg), var(--bg-alt));
-      color: var(--fg);
-      text-align: center;
-      transition: background .3s, color .3s;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-    body.light {
-      --bg: #F5F5F5;
-      --bg-alt: #E0E0E0;
-      --fg: #202020;
-      --table-bg: #FFF;
-      --scrollbar-bg: #CCC;
-      --scrollbar-thumb: #AAA;
-      --input-bg: rgba(0,0,0,0.05);
-    }
-
-    h1 {
-      margin:0 0 20px;
-      color: var(--accent);
-      font-size: 2.5rem;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-
-    .toolbar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    button {
-      background: var(--bg-alt);
-      border: 1px solid var(--fg);
-      color: var(--fg);
-      padding: 6px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 1rem;
       transition: background .3s, color .3s;
     }
-    button:hover {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
+    button { cursor:pointer; }
+    /* Toggle */
+    #mode-toggle {
+      position: fixed;
+      top:12px; right:12px;
+      font-size:1.4rem;
+      background:none;
+      border:none;
+      color: var(--orange);
+      z-index:1000;
     }
-    #themeToggle {
-      min-width: 40px;
+    /* Container */
+    .container {
+      max-width:1200px;
+      margin:0 auto;
+      padding:2rem 1rem 4rem;
+      text-align:center;
     }
-    input[type="text"] {
-      padding: 6px 12px;
-      font-size: 1rem;
-      border: 1px solid var(--fg);
-      border-radius: 4px;
-      transition: background .3s, color .3s, border-color .3s;
-      background: var(--bg-alt);
-      color: var(--fg);
+    .title {
+      font-size:2.5rem;
+      color: var(--orange);
+      margin-bottom:1rem;
+      text-shadow:0 2px 4px rgba(0,0,0,.7);
     }
-    #search {
-      width: 220px;
+    /* Search */
+    #search-container {
+      margin-bottom:1rem;
+      display:none;
     }
-    input[type="text"]::placeholder {
-      color: var(--fg);
-      opacity: .7;
+    #search-input {
+      padding:6px 8px;
+      border:1px solid var(--border);
+      border-radius:4px;
+      width:200px;
+      max-width:80%;
+      margin-right:4px;
     }
-
-    #tableContainer {
-      margin: 0 auto;
-      width: 90%;
-      max-width: 700px;
-      background: var(--table-bg);
-      border: 1px solid var(--fg);
-      border-radius: 8px;
-      overflow-y: auto;
-      max-height: 60vh;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    #search-button {
+      padding:6px 12px;
+      background: var(--orange);
+      color:#fff;
+      border:none;
+      border-radius:4px;
     }
-    /* custom scrollbar */
-    #tableContainer::-webkit-scrollbar {
-      width: 10px;
-      background: var(--scrollbar-bg);
+    /* Table outer */
+    .dashboard {
+      display:flex;
+      justify-content:center;
+      /* shift left 20% on desktop */
+      padding-left:20vw;
     }
-    #tableContainer::-webkit-scrollbar-thumb {
-      background: var(--scrollbar-thumb);
-      border-radius: 5px;
+    .table-wrapper {
+      flex:1;
+      max-width:700px;
+      width:75%;
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    /* Table styling */
+    #table_div {
+      max-height:70vh;
+      overflow-y:auto;
+      overflow-x:hidden;
     }
-    thead {
-      position: sticky;
-      top: 0;
-      background: var(--accent);
-      color: #fff;
-      z-index: 1;
+    #table_div table {
+      width:100%;
+      border-collapse:collapse;
+      background: var(--panel-bg);
+      border:1px solid var(--border);
+      border-radius:8px;
+      overflow:hidden;
     }
-    th, td {
-      padding: 12px 16px;
-      text-align: center;
-      border-bottom: 1px solid #333;
-      font-size: 1rem;
+    #table_div th, #table_div td {
+      padding:12px 16px;
+      font-size:.95rem;
+      white-space:nowrap;
     }
-    th:first-child, td:first-child {
-      text-align: left;
+    #table_div thead {
+      background: var(--orange);
+      color:#fff;
     }
-    tbody tr:nth-child(odd) {
-      background: rgba(0,0,0,0.2);
+    /* align points right */
+    #table_div th:nth-child(2),
+    #table_div td:nth-child(2) {
+      text-align:right;
     }
-    tbody tr:nth-child(even) {
-      background: rgba(0,0,0,0.1);
+    /* avatars cell */
+    #table_div th:nth-child(1),
+    #table_div td:nth-child(1) {
+      text-align:left;
     }
-    img.pfp {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      vertical-align: middle;
-      margin-right: 8px;
+    /* striping */
+    #table_div tbody tr:nth-child(odd) {
+      background:#1E1E1E;
     }
-    
-    .status-bar {
-      margin: 20px auto 0;
-      max-width: 700px;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      transition: all 0.3s;
-      display: none;
+    .pfp {
+      width:24px; height:24px;
+      border-radius:50%;
+      vertical-align:middle;
+      margin-right:.5rem;
     }
-    .status-bar.error {
-      background: rgba(255, 61, 20, 0.2);
-      border: 1px solid var(--error);
-      color: var(--error);
-      display: block;
+    /* Scrollbar styling (WebKit) */
+    #table_div::-webkit-scrollbar {
+      width:8px;
     }
-    .status-bar.warning {
-      background: rgba(255, 193, 7, 0.2);
-      border: 1px solid var(--warning);
-      color: var(--warning);
-      display: block;
+    #table_div::-webkit-scrollbar-thumb {
+      background: rgba(200,200,200,0.2);
+      border-radius:4px;
     }
-    .status-bar.success {
-      background: rgba(76, 175, 80, 0.2);
-      border: 1px solid var(--success);
-      color: var(--success);
-      display: block;
-    }
-    .status-bar.info {
-      background: rgba(33, 150, 243, 0.2);
-      border: 1px solid #2196F3;
-      color: #2196F3;
-      display: block;
-    }
-    
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    #debugInfo {
-      margin-top: 20px;
-      font-family: monospace;
-      font-size: 12px;
-      text-align: left;
-      background: var(--bg-alt);
-      padding: 10px;
-      border-radius: 4px;
-      white-space: pre-wrap;
-      display: none;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-      overflow: auto;
-      max-height: 200px;
-    }
-    
-    .config-panel {
-      background: var(--bg-alt);
-      border: 1px solid var(--fg);
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    }
-    
-    #configPanel input {
-      background: var(--input-bg);
-    }
-    
-    #applyConfigBtn {
-      margin-right: 10px;
-    }
-    
-    @media (max-width: 600px) {
-      body {
-        padding: 20px 10px;
+    /* Responsive */
+    @media (max-width:768px) {
+      .dashboard {
+        flex-direction:column;
+        padding-left:0;
       }
-      
-      h1 {
-        font-size: 1.8rem;
+      .table-wrapper {
+        width:100%;
+        max-width:600px;
       }
-      
-      th, td {
-        padding: 8px;
-        font-size: 0.9rem;
-      }
-      
-      #search {
-        width: 180px;
+      #table_div {
+        overflow-x:auto;  /* allow sideways scroll */
+        overflow-y:hidden;
       }
     }
   </style>
 </head>
 <body>
-  <h1>375yap Leaderboard</h1>
+  <!-- Dark/Light Toggle -->
+  <button id="mode-toggle">🌙</button>
 
-  <div class="toolbar">
-    <button id="themeToggle">🌙</button>
-    <input id="search" type="text" placeholder="🔍 Search username…">
-    <button id="configBtn">Spreadsheet Settings</button>
-    <button id="debugBtn">Debug Info</button>
-    <button id="testConnBtn">Test Connection</button>
-  </div>
-  
-  <div class="config-panel" style="max-width: 700px; margin: 0 auto 20px; text-align: left; display: none;" id="configPanel">
-    <h3 style="margin-bottom: 10px; color: var(--accent);">Spreadsheet Configuration</h3>
-    <div style="margin-bottom: 10px;">
-      <label style="display: block; margin-bottom: 5px;">Published Spreadsheet ID (PUB_ID):</label>
-      <input id="pubIdInput" type="text" style="width: 100%; padding: 8px; font-family: monospace;" 
-        value="2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK">
-    </div>
-    <div style="margin-bottom: 10px;">
-      <label style="display: block; margin-bottom: 5px;">Sheet GID:</label>
-      <input id="gidInput" type="text" style="width: 100%; padding: 8px; font-family: monospace;" value="412750346">
-    </div>
-    <div style="margin-bottom: 10px;">
-      <label style="display: block; margin-bottom: 5px;">Query (optional):</label>
-      <input id="queryInput" type="text" style="width: 100%; padding: 8px; font-family: monospace;" value="select C,A,B order by B desc">
-    </div>
-    <button id="applyConfigBtn" style="background: var(--accent); color: white; border: none;">Apply Changes</button>
-    <button id="configCloseBtn">Close</button>
-    <div style="margin-top: 15px; font-size: 0.8rem; color: var(--fg);">
-      <p>How to find the correct values:</p>
-      <ol style="padding-left: 20px; margin-top: 5px;">
-        <li>Make sure your Google Sheet is published to the web (File > Share > Publish to web)</li>
-        <li>From the published link, extract the PUB_ID (the long string after /e/ and before /pubhtml)</li>
-        <li>For GID, check the sheet tab's URL - it's the number after "gid=" in the URL</li>
-      </ol>
-      <p>Alternative test values to try:</p>
-      <ul style="padding-left: 20px; margin-top: 5px;">
-        <li><strong>PUB_ID:</strong> 2PACX-1vQGI3oN_Rei8H6Jq3aKp9o9fPNgH-T2z2Y8oUWi91O8BB9HBHxOmXt7VHjgQXcXjSGl_XUjpnvoICnc</li>
-        <li><strong>GID:</strong> 0</li>
-      </ul>
-    </div>
-  </div>
+  <div class="container">
+    <h1 class="title">375yap Leaderboard</h1>
 
-  <div id="tableContainer">
-    <table id="lbTable">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Points</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td colspan="2"><div class="spinner"></div> Loading…</td></tr>
-      </tbody>
-    </table>
+    <!-- Search (only shows if >50 rows) -->
+    <div id="search-container">
+      <input id="search-input" placeholder="🔍 Search username…" />
+      <button id="search-button">Go</button>
+    </div>
+
+    <div class="dashboard">
+      <div class="table-wrapper">
+        <div id="table_div"></div>
+      </div>
+    </div>
   </div>
-  
-  <div id="statusBar" class="status-bar"></div>
-  <div id="debugInfo"></div>
 
   <script>
-    (()=>{
-      // Configuration
-      const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-      const GID    = '412750346'; // Leaderboard sheet gid
-      const QUERY  = 'select C,A,B order by B desc';
-      
-      // DOM Elements
-      const tableBody = document.querySelector('#lbTable tbody');
-      const searchInput = document.getElementById('search');
-      const statusBar = document.getElementById('statusBar');
-      const debugInfo = document.getElementById('debugInfo');
-      const debugBtn = document.getElementById('debugBtn');
-      const testConnBtn = document.getElementById('testConnBtn');
-      
-      // State
-      let allData = []; // full [ { pfp, user, pts } ]
-      let debugData = {};
-      
-      // Helpers
-      function formatPts(n) {
-        return (typeof n==='number' ? n.toFixed(2) : n).toString();
-      }
-      
-      function showStatus(message, type = 'info') {
-        statusBar.textContent = message;
-        statusBar.className = 'status-bar ' + type;
-        
-        // Auto-hide success messages after 5 seconds
-        if (type === 'success') {
-          setTimeout(() => {
-            statusBar.style.display = 'none';
-          }, 5000);
-        }
-      }
-      
-      function hideStatus() {
-        statusBar.style.display = 'none';
-      }
-      
-      function updateDebugInfo() {
-        debugInfo.innerHTML = JSON.stringify({
-          config: {
-            pubId: PUB_ID,
-            gid: GID,
-            query: QUERY,
-            url: getSheetUrl()
-          },
-          status: debugData
-        }, null, 2);
-      }
-      
-      function getSheetUrl() {
-        return `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}`
-                + `&headers=1&tq=${encodeURIComponent(QUERY)}`
-                + '&tqx=out:json';
-      }
+    // 1) Dark/light mode persistence
+    google.charts.load('current',{packages:['table']});
+    const html = document.documentElement;
+    const saved = localStorage.getItem('mode') || 'dark';
+    html.classList.add(saved);
+    document.getElementById('mode-toggle').textContent = saved==='dark'?'🌞':'🌙';
+    document.getElementById('mode-toggle').onclick = () => {
+      const now = html.classList.contains('dark') ? 'light' : 'dark';
+      html.classList.toggle('dark');
+      html.classList.toggle('light');
+      localStorage.setItem('mode', now);
+      document.getElementById('mode-toggle').textContent = now==='dark'?'🌞':'🌙';
+    };
 
-      function render(rows) {
-        tableBody.innerHTML = '';
-        if (!rows.length) {
-          let tr = document.createElement('tr'),
-              td = document.createElement('td');
-          td.colSpan = 2;
-          td.textContent = 'No results.';
-          tr.append(td);
-          tableBody.append(tr);
+    // 2) Once Charts API is ready → start fetching
+    google.charts.setOnLoadCallback(fetchPFPs);
+
+    function fetchPFPs() {
+      const SHEET_KEY = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
+      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?`;
+      const q1 = new google.visualization.Query(
+        BASE +
+        'gid=0&headers=1&tq=' +
+        encodeURIComponent('select B,F')
+      );
+      q1.send(res=>{
+        if(res.isError()){
+          document.getElementById('table_div').innerHTML =
+            '<p style="color:#FF3D14">Error loading avatars: '+res.getMessage()+'</p>';
           return;
         }
-        rows.forEach(({pfp,user,pts})=>{
-          let tr = document.createElement('tr');
-          let tdUser = document.createElement('td'),
-              tdPts  = document.createElement('td');
-          let img = document.createElement('img');
-          img.src = pfp;
-          img.className = 'pfp';
-          img.onerror = ()=>{ img.style.display='none' };
-          tdUser.append(img, user);
-          tdPts.textContent = formatPts(pts);
-          tr.append(tdUser, tdPts);
-          tableBody.append(tr);
-        });
-      }
-      
-      function showLoadingState() {
-        tableBody.innerHTML = `<tr><td colspan="2"><div class="spinner"></div> Loading…</td></tr>`;
-      }
-      
-      function showError(message) {
-        tableBody.innerHTML = `<tr>
-          <td colspan="2" style="color: var(--error);">
-            ${message}
-          </td>
-        </tr>`;
-      }
-      
-      async function fetchLeaderboardData() {
-        showLoadingState();
-        hideStatus();
-        
-        try {
-          const url = getSheetUrl();
-          debugData.fetchStarted = new Date().toISOString();
-          
-          // First check if Google Sheets is accessible
-          const googleCheck = await fetch('https://docs.google.com/', {
-            method: 'HEAD',
-            mode: 'no-cors'
-          }).catch(err => {
-            debugData.googleConnectError = err.message;
-            throw new Error('Cannot connect to Google. Check your internet connection.');
-          });
-          
-          debugData.googleAccessible = true;
-          
-          // Now try to get the actual sheet data
-          const response = await fetch(url);
-          debugData.fetchStatus = response.status;
-          debugData.fetchStatusText = response.statusText;
-          
-          if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-          }
-          
-          const text = await response.text();
-          debugData.responseLength = text.length;
-          
-          // Google's API returns JSON wrapped in a text prefix we need to remove
-          const jsonStart = text.indexOf('{');
-          const jsonEnd = text.lastIndexOf('}') + 1;
-          
-          if (jsonStart === -1 || jsonEnd === 0) {
-            debugData.jsonParseError = 'Invalid response format';
-            throw new Error('Invalid data format received from Google Sheets');
-          }
-          
-          const jsonText = text.substring(jsonStart, jsonEnd);
-          debugData.jsonLength = jsonText.length;
-          
-          // Try to parse JSON
-          const json = JSON.parse(jsonText);
-          
-          // Check if we got the table structure we expect
-          if (!json.table || !json.table.rows) {
-            debugData.structureError = 'Missing table or rows';
-            throw new Error('Invalid sheet structure - missing data');
-          }
-          
-          // Process the data
-          allData = json.table.rows.map(r => {
-            const cells = r.c || [];
-            return {
-              pfp: cells[0]?.v || '',
-              user: cells[1]?.v || '',
-              pts: parseFloat(cells[2]?.v) || 0
-            };
-          });
-          
-          debugData.rowCount = allData.length;
-          
-          // Show success and render the top 50
-          showStatus(`Successfully loaded ${allData.length} users`, 'success');
-          render(allData.slice(0, 50));
-          
-        } catch (err) {
-          console.error('Failed to load data:', err);
-          debugData.error = err.message;
-          showError(`Error loading sheet: ${err.message}`);
-          showStatus(`Failed to load data: ${err.message}`, 'error');
-          updateDebugInfo();
+        const dt = res.getDataTable();
+        const pfpMap = {};
+        for(let i=0; i<dt.getNumberOfRows(); i++){
+          pfpMap[dt.getValue(i,0)] = dt.getValue(i,1);
         }
-      }
-      
-      // Event Handlers
-      searchInput.addEventListener('input', e => {
-        const q = e.target.value.trim().toLowerCase();
-        if (!q) {
-          render(allData.slice(0, 50));
-        } else {
-          const matches = allData.filter(o =>
-            o.user.toLowerCase().includes(q)
-          );
-          render(matches);
+        fetchLB(pfpMap);
+      });
+    }
+
+    function fetchLB(pfpMap) {
+      const SHEET_KEY = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
+      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?`;
+      const q2 = new google.visualization.Query(
+        BASE +
+        'sheet=Temporary%20LB&headers=1&tq=' +
+        encodeURIComponent('select A,B order by B desc')
+      );
+      q2.send(res=>{
+        if(res.isError()){
+          document.getElementById('table_div').innerHTML =
+            '<p style="color:#FF3D14">Error loading leaderboard: '+res.getMessage()+'</p>';
+          return;
         }
+        const dt = res.getDataTable();
+        const all = [];
+        for(let i=0; i<dt.getNumberOfRows(); i++){
+          all.push({
+            u: dt.getValue(i,0),
+            pts: dt.getValue(i,1)
+          });
+        }
+        drawTable(all, pfpMap);
       });
-      
-      // Theme toggle
-      const themeToggle = document.getElementById('themeToggle');
-      function updateTheme() {
-        const isLight = document.body.classList.toggle('light');
-        themeToggle.textContent = isLight ? '☀️' : '🌙';
+    }
+
+    function drawTable(all, pfpMap) {
+      const top50 = all.slice(0,50);
+      const container = document.getElementById('table_div');
+      container.innerHTML = ''; 
+      // create table
+      const tbl = document.createElement('table');
+      const thead = tbl.createTHead().insertRow();
+      ['User','Points'].forEach(txt=>{
+        const th = document.createElement('th');
+        th.textContent = txt;
+        thead.appendChild(th);
+      });
+      const tbody = tbl.createTBody();
+      top50.forEach(r=>{
+        const row = tbody.insertRow();
+        // avatar + username
+        const c1 = row.insertCell();
+        const img = document.createElement('img');
+        img.src = pfpMap[r.u]||'';
+        img.className = 'pfp';
+        c1.appendChild(img);
+        c1.appendChild(document.createTextNode(r.u));
+        // points (2 decimals)
+        const c2 = row.insertCell();
+        c2.textContent = parseFloat(r.pts).toFixed(2);
+      });
+      container.appendChild(tbl);
+
+      // if more than 50, show search
+      if(all.length>50){
+        const sc = document.getElementById('search-container');
+        sc.style.display = 'block';
+        document.getElementById('search-button').onclick = ()=>{
+          const q = document.getElementById('search-input').value.trim().toLowerCase();
+          const found = all.find(x=>x.u.toLowerCase()===q);
+          if(!found){
+            alert('User not found');
+            return;
+          }
+          drawTable([found], pfpMap);
+        };
       }
-      themeToggle.addEventListener('click', updateTheme);
-      
-      // Debug info toggle
-      debugBtn.addEventListener('click', () => {
-        updateDebugInfo();
-        debugInfo.style.display = debugInfo.style.display === 'block' ? 'none' : 'block';
-      });
-      
-      // Test connection button
-      testConnBtn.addEventListener('click', () => {
-        fetchLeaderboardData();
-      });
-      
-      // Initialization
-      // Init theme from prefers-color-scheme
-      if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-        updateTheme();
-      }
-      
-      // Fetch data on load
-      fetchLeaderboardData();
-    })();
+    }
   </script>
 </body>
 </html>
