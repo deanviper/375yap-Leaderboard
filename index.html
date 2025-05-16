@@ -3,123 +3,113 @@
 <head>
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Roboto font -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Google Charts loader -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
-    body {
-      margin:0;
-      padding:20px 0;
-      font-family:'Roboto',sans-serif;
-      background:var(--bg);
-      color:var(--fg);
-      transition:background .3s,color .3s;
-    }
+    /* === Theme variables === */
     :root {
-      --bg:#050607;
-      --fg:#E0E0E0;
-      --card-bg:rgba(26,26,26,0.9);
-      --th-bg:#FF3D14;
-      --td-even:#1E1E1E;
-      --td-odd:#181818;
+      --bg: #050607;       --fg: #E0E0E0;
+      --card-bg: rgba(26,26,26,0.9);
+      --th-bg: #FF3D14;
+      --row-even: #1E1E1E;  --row-odd: #181818;
     }
     .light {
-      --bg:#F5F6F7;
-      --fg:#333;
-      --card-bg:#FFF;
-      --th-bg:#222;
-      --td-even:#EEE;
-      --td-odd:#FFF;
+      --bg: #F5F6F7;       --fg: #333;
+      --card-bg: #FFF;
+      --th-bg: #222;
+      --row-even: #EEE;    --row-odd: #FFF;
     }
-    .container {
-      max-width:800px;
-      margin:0 auto;
-      text-align:center;
+
+    /* === Reset & Base === */
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Roboto', sans-serif;
+      padding: 20px;
+      transition: background .3s, color .3s;
     }
-    h1 {
-      margin-bottom:10px;
-      color:#FF3D14;
-      font-size:2.5rem;
-      text-shadow:0 2px 4px rgba(0,0,0,0.5);
+    .container { max-width:800px; margin:0 auto; text-align:center; }
+    h1 { color:#FF3D14; font-size:2.5rem; margin-bottom:12px; }
+
+    /* === Toggles & Search === */
+    #controls {
+      display:flex; justify-content:center; gap:12px; margin-bottom:12px;
     }
-    #toggles {
-      position:absolute;
-      top:20px; right:20px;
+    #theme-toggle, #search {
+      padding:8px 12px; border-radius:4px; font-size:1rem;
     }
-    #toggles button {
-      background:none;
-      border:1px solid var(--fg);
-      color:var(--fg);
-      padding:6px 10px;
-      border-radius:4px;
-      cursor:pointer;
-      font-size:0.9rem;
+    #theme-toggle {
+      background: none; border:1px solid var(--fg); color:var(--fg);
+      cursor: pointer;
     }
+    .light #theme-toggle { border-color:#333; }
     #search {
-      width:250px;
-      padding:8px 12px;
-      font-size:1rem;
-      border:1px solid var(--fg);
-      border-radius:4px;
-      margin-bottom:12px;
+      flex:1; max-width:300px;
+      border:1px solid var(--fg); background:transparent;
       color:var(--fg);
-      background:transparent;
     }
+    .light #search { border-color:#ccc; }
+
+    /* === Leaderboard Card === */
     #leaderboard {
-      width:100%;
-      background:var(--card-bg);
+      background: var(--card-bg);
       border:1px solid var(--fg);
       border-radius:8px;
-      overflow:auto;
+      overflow-y: auto;
       max-height:60vh;
-      box-shadow:0 8px 24px rgba(0,0,0,0.5);
       margin:0 auto;
+      box-shadow:0 8px 24px rgba(0,0,0,0.5);
     }
     table {
-      border-collapse:collapse;
-      width:100%;
+      width:100%; border-collapse:collapse;
       table-layout:fixed;
     }
-    th,td {
-      padding:12px;
-      text-align:left;
-      white-space:nowrap;
+    th, td {
+      padding:12px; white-space:nowrap;
     }
     th {
-      background:var(--th-bg);
-      color:#fff;
-      position:sticky;
-      top:0;
-      z-index:1;
-      font-weight:700;
+      background: var(--th-bg);
+      color:#fff; position:sticky; top:0; z-index:1;
+      font-weight:700; text-align:left;
     }
-    tbody tr:nth-child(even) td { background:var(--td-even); }
-    tbody tr:nth-child(odd)  td { background:var(--td-odd);  }
-    .pfp {
+    tbody tr:nth-child(even) td { background: var(--row-even); }
+    tbody tr:nth-child(odd)  td { background: var(--row-odd);  }
+    .user-cell {
+      display:flex; align-items:center;
+      overflow:hidden; text-overflow:ellipsis;
+    }
+    .user-cell img {
       width:32px; height:32px;
       border-radius:50%;
-      vertical-align:middle;
       margin-right:8px;
+      object-fit:cover;
     }
-    .points {
-      text-align:right;
-      font-variant-numeric:tabular-nums;
+    .points { text-align:right; font-variant-numeric:tabular-nums; }
+    @media (max-width:768px) {
+      #leaderboard { max-width:90%; }
     }
   </style>
 </head>
-<body>
-  <div id="toggles">
-    <button id="theme-toggle">🌙</button>
-  </div>
-
+<body class="dark">
   <div class="container">
     <h1>375yap Leaderboard</h1>
-    <input id="search" type="search" placeholder="🔍 Search username…">
+
+    <div id="controls">
+      <button id="theme-toggle">🌙</button>
+      <input id="search" type="search" placeholder="🔍 Search username…" />
+    </div>
+
     <div id="leaderboard">
       <table>
         <thead>
-          <tr><th>User</th><th style="width:80px">Points</th></tr>
+          <tr>
+            <th>User</th>
+            <th class="points">Points</th>
+          </tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
@@ -127,89 +117,67 @@
   </div>
 
   <script>
-    // your published spreadsheet's "e/…/pubhtml" ID:
+    // --- CONFIGURE SHEET ID & TAB NAME ---
     const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
+    const TAB    = 'Temporary LB';       // exact tab name
 
-    // helper to fetch any sheet via Gviz
-    async function fetchSheet(sheetName, cols) {
-      const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&headers=1&tq=${encodeURIComponent('select '+cols.join(','))}`;
+    // load Google Charts for helper
+    google.charts.load('current',{packages:['corechart']});
+
+    // entry point
+    google.charts.setOnLoadCallback(init);
+
+    async function init() {
+      // 1) fetch the sheet via GViz
+      const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?sheet=${encodeURIComponent(TAB)}&headers=1&tq=${encodeURIComponent('select C,A,B order by B desc')}`;
       const res = await fetch(url);
       const txt = await res.text();
-      // strip the "google.visualization.Query.setResponse(...)" wrapper
+      // extract JSON payload
       const json = JSON.parse(txt.match(/setResponse\(([\s\S]+)\);/)[1]);
-      return google.visualization.arrayToDataTable(json.table.rows.map(r=>r.c.map(c=>c&&c.v)), json.table.cols.map(c=>c.label));
-    }
+      const cols = json.table.cols.map(c=>c.label);
+      const rows = json.table.rows.map(r=>r.c.map(c=>c&&c.v));
 
-    async function build() {
-      // load google charts just so we get arrayToDataTable helper:
-      await new Promise(r=>google.charts.load('current')).then(()=>google.charts.setOnLoadCallback(r));
-      // fetch both sheets
-      const [sheet1, tempLB] = await Promise.all([
-        fetchSheet('Sheet1', ['B','F']),
-        fetchSheet('Temporary LB', ['A','B'])
-      ]);
+      // 2) build full array [pfp, user, pts]
+      const data = rows.map(r => [ r[0]||'', r[1]||'', parseFloat(r[2]||0) ]);
 
-      // map username→pfp
-      const pfpMap = {};
-      for(let i=0; i<sheet1.getNumberOfRows(); i++) {
-        const u = sheet1.getValue(i,0);
-        const url = sheet1.getValue(i,1);
-        if(u && url) pfpMap[u] = url;
-      }
-
-      // build full dataset [u,points,pfp]
-      const data = [];
-      for(let i=0; i<tempLB.getNumberOfRows(); i++) {
-        const u = tempLB.getValue(i,0);
-        let p = parseFloat(tempLB.getValue(i,1])||0;
-        p = Math.round(p*100)/100; // two decimals
-        data.push([u,p,pfpMap[u]||'']);
-      }
-
-      // sort desc by points
-      data.sort((a,b)=>b[1]-a[1]);
-
-      window.fullData = data;
+      // 3) render top 50
+      window.full = data;
       renderTable(data.slice(0,50));
+
+      // 4) wire search
+      document.getElementById('search').oninput = e => {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) return renderTable(full.slice(0,50));
+        const f = full.find(r=>r[1].toLowerCase()===q);
+        renderTable(f ? [f] : []);
+      };
+
+      // 5) wire theme toggle
+      const body = document.body;
+      document.getElementById('theme-toggle').onclick = ()=>{
+        body.classList.toggle('light');
+        body.classList.toggle('dark');
+        document.getElementById('theme-toggle').textContent =
+          body.classList.contains('dark') ? '🌙' : '🌞';
+      };
     }
 
-    function renderTable(rows) {
+    function renderTable(data) {
       const tbody = document.getElementById('rows');
-      tbody.innerHTML = '';
-      for(let [u,p,src] of rows) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            ${src?`<img src="${src}" class="pfp">`:''}
-            ${u}
-          </td>
-          <td class="points">${p.toFixed(2)}</td>
-        `;
-        tbody.appendChild(tr);
-      }
+      tbody.innerHTML = data.length
+        ? data.map(r=>`
+            <tr>
+              <td>
+                <div class="user-cell">
+                  ${r[0] ? `<img src="${r[0]}" onerror="this.src='';">` : ''}
+                  ${r[1]}
+                </div>
+              </td>
+              <td class="points">${r[2].toFixed(2)}</td>
+            </tr>
+          `).join('')
+        : '<tr><td colspan=2>No user found.</td></tr>';
     }
-
-    document.getElementById('search').addEventListener('input', e=>{
-      const q = e.target.value.trim().toLowerCase();
-      if(!q) return renderTable(window.fullData.slice(0,50));
-      // if below top 50, show just them
-      const found = window.fullData.find(r=>r[0].toLowerCase()===q);
-      if(found) return renderTable([found]);
-      // else, no match
-      document.getElementById('rows').innerHTML = `<tr><td colspan=2>No user found.</td></tr>`;
-    });
-
-    // theme toggle
-    const btn = document.getElementById('theme-toggle');
-    btn.onclick = ()=>{
-      document.body.classList.toggle('light');
-      btn.textContent = document.body.classList.contains('light') ? '🌞' : '🌙';
-    };
-
-    build().catch(e=>{
-      console.error(e);
-      document.getElementById('leaderboard').innerHTML = `<p style="color:#FF3D14">Error loading data.</p>`;
-    });
   </script>
 </body>
 </html>
