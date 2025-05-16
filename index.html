@@ -4,144 +4,247 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto -->
+  <!-- Roboto font -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#050607; --fg:#E0E0E0;
-      --card:#1A1A1A; --th:#FF3D14;
-      --even:#1E1E1E; --odd:#181818;
+      --bg: #050607;
+      --bg-alt: #1A1A1A;
+      --fg: #E0E0E0;
+      --accent: #FF3D14;
+      --table-bg: rgba(26,26,26,0.9);
+      --scrollbar-bg: #333;
+      --scrollbar-thumb: #555;
     }
-    .light {
-      --bg:#F5F6F7; --fg:#333;
-      --card:#FFF; --th:#222;
-      --even:#EEE; --odd:#FFF;
-    }
-    * { box-sizing:border-box; margin:0; padding:0 }
     body {
-      background:var(--bg); color:var(--fg);
-      font-family:'Roboto',sans-serif; transition:.3s;
+      margin:0; padding:40px;
+      font-family:'Roboto',sans-serif;
+      background: linear-gradient(135deg, var(--bg), var(--bg-alt));
+      color: var(--fg);
+      text-align: center;
+      transition: background .3s, color .3s;
     }
-    .wrap { max-width:800px; margin:0 auto; padding:20px; text-align:center }
-    h1 { color:#FF3D14; font-size:2.5rem; margin-bottom:12px }
-    #controls {
-      display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;
+    body.light {
+      --bg: #F5F5F5;
+      --bg-alt: #E0E0E0;
+      --fg: #202020;
+      --table-bg: #FFF;
+      --scrollbar-bg: #CCC;
+      --scrollbar-thumb: #AAA;
     }
-    #theme { background:none; border:1px solid var(--fg);
-      color:var(--fg); padding:6px; border-radius:4px;
-      cursor:pointer;
+
+    h1 {
+      margin:0 0 20px;
+      color: var(--accent);
+      font-size: 2.5rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    #themeToggle {
+      background: var(--bg-alt);
+      border: 1px solid var(--fg);
+      color: var(--fg);
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: background .3s, color .3s;
+    }
+    #themeToggle:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
     }
     #search {
-      flex:1; max-width:250px; padding:6px 8px; border:1px solid var(--fg);
-      border-radius:4px; background:transparent; color:var(--fg);
+      padding: 6px 12px;
+      font-size: 1rem;
+      border: 1px solid var(--fg);
+      border-radius: 4px;
+      width: 220px;
+      transition: background .3s, color .3s, border-color .3s;
+      background: var(--bg-alt);
+      color: var(--fg);
     }
-    .light #theme { border-color:#333 }
-    .light #search { border-color:#999; color:#333 }
-    #board {
-      background:var(--card); border:1px solid var(--fg);
-      border-radius:8px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.5);
-      max-height:60vh; overflow-y:auto;
+    #search::placeholder {
+      color: var(--fg);
+      opacity: .7;
     }
-    table { width:100%; border-collapse:collapse; }
-    th,td { padding:12px; white-space:nowrap; }
-    th {
-      background:var(--th); color:#fff;
-      position:sticky; top:0; z-index:1; text-align:left;
+
+    #tableContainer {
+      margin: 0 auto;
+      width: 90%;
+      max-width: 700px;
+      background: var(--table-bg);
+      border: 1px solid var(--fg);
+      border-radius: 8px;
+      overflow-y: auto;
+      max-height: 60vh;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
-    tbody tr:nth-child(even) { background:var(--even) }
-    tbody tr:nth-child(odd ) { background:var(--odd)  }
-    .user {
-      display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis;
+    /* custom scrollbar */
+    #tableContainer::-webkit-scrollbar {
+      width: 10px;
+      background: var(--scrollbar-bg);
     }
-    .user img {
-      width:32px; height:32px; border-radius:50%;
-      margin-right:8px; object-fit:cover;
+    #tableContainer::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 5px;
     }
-    .pts { text-align:right; font-variant-numeric:tabular-nums }
-    @media(max-width:768px){
-      #controls { flex-direction:column; align-items:center }
-      #search { max-width:100% }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead {
+      position: sticky;
+      top: 0;
+      background: var(--accent);
+      color: #fff;
+      z-index: 1;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: center;
+      border-bottom: 1px solid #333;
+      font-size: 1rem;
+    }
+    th:first-child, td:first-child {
+      text-align: left;
+    }
+    tbody tr:nth-child(odd) {
+      background: rgba(0,0,0,0.2);
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(0,0,0,0.1);
+    }
+    img.pfp {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 8px;
     }
   </style>
 </head>
-<body class="dark">
-  <div class="wrap">
-    <h1>375yap Leaderboard</h1>
-    <div id="controls">
-      <button id="theme">🌙</button>
-      <input id="search" type="search" placeholder="🔍 Search username…">
-    </div>
-    <div id="board">
-      <table>
-        <thead><tr><th>User</th><th class="pts">Points</th></tr></thead>
-        <tbody id="rows">
-          <tr><td colspan="2">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
+<body>
+  <h1>375yap Leaderboard</h1>
+
+  <div class="toolbar">
+    <button id="themeToggle">🌙</button>
+    <input id="search" type="text" placeholder="🔍 Search username…">
+  </div>
+
+  <div id="tableContainer">
+    <table id="lbTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="2">Loading…</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <script>
-    // ─── PASTE your published‐to‐web ID and GID here ───
-    const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-    const GID    = '412750346';
+    (()=>{
+      const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
+      const GID    = '412750346'; // Temporary LB sheet gid
+      const URL = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}`
+                + `&headers=1&tq=${encodeURIComponent('select C,A,B order by B desc')}`
+                + '&tqx=out:json';
 
-    let full = [];
+      let allData = []; // full [ { pfp, user, pts } ]
+      const tableBody = document.querySelector('#lbTable tbody');
+      const searchInput = document.getElementById('search');
 
-    function fetchData() {
-      const tq = encodeURIComponent('select C,A,B order by B desc');
-      const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}&headers=1&tq=${tq}`;
-      fetch(url)
+      function formatPts(n) {
+        return (typeof n==='number' ? n.toFixed(2) : n).toString();
+      }
+
+      function render(rows) {
+        tableBody.innerHTML = '';
+        if (!rows.length) {
+          let tr = document.createElement('tr'),
+              td = document.createElement('td');
+          td.colSpan = 2;
+          td.textContent = 'No results.';
+          tr.append(td);
+          tableBody.append(tr);
+          return;
+        }
+        rows.forEach(({pfp,user,pts})=>{
+          let tr = document.createElement('tr');
+          let tdUser = document.createElement('td'),
+              tdPts  = document.createElement('td');
+          let img = document.createElement('img');
+          img.src = pfp;
+          img.className = 'pfp';
+          img.onerror = ()=>{ img.style.display='none' };
+          tdUser.append(img, user);
+          tdPts.textContent = formatPts(pts);
+          tr.append(tdUser, tdPts);
+          tableBody.append(tr);
+        });
+      }
+
+      fetch(URL)
         .then(r=>r.text())
         .then(txt=>{
-          // extract JSON payload from gviz
-          const json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/)[1]);
-          const rows = json.table.rows.map(r=>r.c.map(c=>c&&c.v));
-          // [PFP, Username, Points]
-          full = rows.map(r=>[r[0]||'', r[1]||'', parseFloat(r[2]||0)]);
-          render(full.slice(0,50));
-          bindControls();
+          let json = JSON.parse(txt);
+          allData = json.table.rows.map(r=>{
+            const [c0,c1,c2] = r.c;
+            return {
+              pfp: c0?.v||'',
+              user: c1?.v||'',
+              pts: parseFloat(c2?.v)||0
+            };
+          });
+          // render only top 50 initially
+          render(allData.slice(0,50));
         })
         .catch(err=>{
+          tableBody.innerHTML = `<tr>
+            <td colspan="2" style="color: #FF3D14;">
+              Error loading sheet
+            </td>
+          </tr>`;
           console.error(err);
-          document.getElementById('rows').innerHTML =
-            `<tr><td colspan=2 style="text-align:center;color:#FF3D14">Error loading sheet</td></tr>`;
         });
-    }
 
-    function render(arr) {
-      const html = arr.length
-        ? arr.map(r=>`
-            <tr>
-              <td>
-                <div class="user">
-                  ${ r[0] ? `<img src="${r[0]}" onerror="this.src='';">` : '' }
-                  ${r[1]}
-                </div>
-              </td>
-              <td class="pts">${r[2].toFixed(2)}</td>
-            </tr>
-          `).join('')
-        : `<tr><td colspan=2 style="text-align:center">No results</td></tr>`;
-      document.getElementById('rows').innerHTML = html;
-    }
-
-    function bindControls() {
-      document.getElementById('search').oninput = e=>{
+      // search handler
+      searchInput.addEventListener('input',e=>{
         const q = e.target.value.trim().toLowerCase();
-        if (!q) return render(full.slice(0,50));
-        const found = full.filter(r=>r[1].toLowerCase().includes(q));
-        render(found.length>50 ? found.slice(0,50) : found);
-      };
-      document.getElementById('theme').onclick = ()=>{
-        document.body.classList.toggle('light');
-        document.getElementById('theme').textContent =
-          document.body.classList.contains('dark') ? '🌙' : '🌞';
-      };
-    }
+        if (!q) {
+          render(allData.slice(0,50));
+        } else {
+          const matches = allData.filter(o=>
+            o.user.toLowerCase().includes(q)
+          );
+          render(matches);
+        }
+      });
 
-    // kick it off
-    fetchData();
+      // theme toggle
+      const themeToggle = document.getElementById('themeToggle');
+      function updateTheme() {
+        const isLight = document.body.classList.toggle('light');
+        themeToggle.textContent = isLight ? '☀️' : '🌙';
+      }
+      themeToggle.addEventListener('click', updateTheme);
+      // init from prefers-color-scheme
+      if (window.matchMedia('(prefers-color-scheme:light)').matches) {
+        updateTheme();
+      }
+    })();
   </script>
 </body>
 </html>
