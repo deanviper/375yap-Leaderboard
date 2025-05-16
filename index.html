@@ -4,203 +4,824 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto & Charts loader -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Google Fonts - Added Inter for modern feel -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Google Charts loader -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Animation library -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <style>
     :root {
       --bg: #050607;
-      --text: #B9C1C1;
-      --panel-bg: rgba(26,26,26,0.9);
-      --border: #B9C1C1;
+      --text: #ffffff;
+      --panel-bg: rgba(26, 26, 26, 0.85);
+      --border: rgba(255, 255, 255, 0.1);
       --orange: #FF3D14;
+      --table-row: rgba(30, 30, 30, 0.5);
+      --highlight: rgba(255, 61, 20, 0.15);
     }
-    .light {
-      --bg: #fff;
-      --text: #000;
-      --panel-bg: #f5f5f5;
-      --border: #ccc;
-      --orange: #FF3D14;
+    
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
     }
-    * { box-sizing:border-box; margin:0; padding:0; }
+    
     body {
       background: var(--bg);
       color: var(--text);
-      font-family:'Roboto',sans-serif;
-      transition: background .3s, color .3s;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
     }
-    button { cursor:pointer; border:none; background:none; }
-    #mode-toggle {
-      position: fixed; top:12px; right:12px;
-      font-size:1.4rem; color: var(--orange); z-index:1000;
+    
+    .background-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -2;
     }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 6, 7, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: -1;
+    }
+    
     .container {
-      max-width:1000px; margin:0 auto;
-      padding:2rem 1rem 4rem;
-      text-align:center;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 4rem 1rem;
+      position: relative;
+      z-index: 1;
     }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeInDown 0.8s ease-out;
+    }
+    
     h1 {
-      font-size:2.5rem; color: var(--orange);
-      text-shadow:0 2px 4px rgba(0,0,0,.7);
-      margin-bottom:1rem;
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+      background: linear-gradient(90deg, #FF3D14, #FF6B14);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+      animation: textGlow 2s ease-in-out infinite alternate;
+      position: relative;
     }
-    #search-container {
-      display:none; margin-bottom:1rem;
+    
+    @keyframes textGlow {
+      0% {
+        text-shadow: 0 0 10px rgba(255, 61, 20, 0.3);
+        transform: scale(1);
+      }
+      100% {
+        text-shadow: 0 0 20px rgba(255, 61, 20, 0.7);
+        transform: scale(1.03);
+      }
     }
+    
+    .subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.25rem;
+      max-width: 600px;
+      margin: 0 auto;
+      animation: fadeInUp 1s ease-out 0.5s both;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .search-container {
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: center;
+      position: relative;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      animation: fadeIn 1s ease-out 0.3s both;
+    }
+    
+    .search-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    
     #search-input {
-      width:60%; max-width:300px;
-      padding:6px 8px;
-      border:1px solid var(--border);
-      border-radius:4px;
-      margin-right:4px;
+      width: 100%;
+      padding: 12px 20px 12px 45px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      outline: none;
     }
-    #search-button {
-      padding:6px 12px;
-      background: var(--orange);
-      color:#fff;
-      border-radius:4px;
+    
+    #search-input:focus {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255, 61, 20, 0.2);
     }
+    
+    #search-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+    
+    #clear-search {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.5);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: none;
+    }
+    
+    #clear-search:hover {
+      color: var(--orange);
+    }
+    
     .dashboard {
-      display:flex; justify-content:center;
-      padding:0 1rem;
+      display: flex;
+      justify-content: center;
+      animation: fadeIn 1s ease-out 0.6s both;
     }
+    
     .table-wrapper {
-      width:75%; max-width:700px; flex-shrink:0;
-      border:1px solid var(--border);
-      border-radius:8px;
-      overflow:hidden;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
       background: var(--panel-bg);
-      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
     }
-    #table_div { width:100%; max-height:70vh; overflow-y:auto; }
+    
+    .table-wrapper:hover {
+      box-shadow: 0 15px 40px rgba(255, 61, 20, 0.15);
+      transform: translateY(-5px);
+    }
+    
+    #table_div {
+      width: 100%;
+      max-height: 65vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--orange) rgba(255, 255, 255, 0.1);
+    }
+    
+    #table_div::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #table_div::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    #table_div::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 61, 20, 0.5);
+      border-radius: 20px;
+    }
+    
     #table_div table {
-      width:100%; border-collapse:collapse;
-      table-layout:fixed;
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
     }
+    
     #table_div th, #table_div td {
-      padding:.75rem 1rem; font-size:.95rem;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      padding: 1rem 1.25rem;
+      font-size: 1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    #table_div thead { background: var(--orange); color:#fff; }
+    
+    #table_div thead {
+      background: linear-gradient(90deg, #FF3D14, #FF6B14);
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    #table_div th {
+      font-weight: 600;
+      text-align: left;
+      letter-spacing: 0.5px;
+    }
+    
     #table_div th:nth-child(1), #table_div td:nth-child(1) {
-      width:2.5rem; text-align:center;
+      width: 4rem;
+      text-align: center;
     }
+    
     #table_div th:nth-child(3), #table_div td:nth-child(3) {
-      text-align:right;
+      text-align: right;
+      width: 8rem;
     }
-    #table_div tbody tr:nth-child(odd) { background:#1E1E1E; }
+    
+    #table_div tbody tr {
+      transition: all 0.3s ease;
+    }
+    
+    #table_div tbody tr:nth-child(even) {
+      background: var(--table-row);
+    }
+    
+    #table_div tbody tr:hover {
+      background: var(--highlight);
+      transform: translateX(5px);
+    }
+    
+    /* Top 3 positions styling - removed as handled in JS */
+    #table_div tbody tr:nth-child(1) td:first-child {
+      animation: pulseGold 2s infinite alternate;
+    }
+    
+    #table_div tbody tr:nth-child(2) td:first-child {
+      animation: pulseSilver 2s infinite alternate;
+    }
+    
+    #table_div tbody tr:nth-child(3) td:first-child {
+      animation: pulseBronze 2s infinite alternate;
+    }
+    
+    @keyframes pulseGold {
+      0% {
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+      }
+      100% {
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+      }
+    }
+    
+    @keyframes pulseSilver {
+      0% {
+        text-shadow: 0 0 5px rgba(192, 192, 192, 0.3);
+      }
+      100% {
+        text-shadow: 0 0 15px rgba(192, 192, 192, 0.8);
+      }
+    }
+    
+    @keyframes pulseBronze {
+      0% {
+        text-shadow: 0 0 5px rgba(205, 127, 50, 0.3);
+      }
+      100% {
+        text-shadow: 0 0 15px rgba(205, 127, 50, 0.8);
+      }
+    }
+    
     .pfp {
-      width:24px; height:24px;
-      border-radius:50%;
-      vertical-align:middle;
-      margin-right:.5rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 0.75rem;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
     }
-    @media (max-width:768px) {
-      .dashboard { flex-direction:column; }
-      .table-wrapper { width:100%; }
-      #table_div { overflow-x:auto; }
+    
+    .username-cell {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .username-cell:hover .pfp {
+      border-color: var(--orange);
+      transform: scale(1.1);
+    }
+    
+    .username-cell:hover .username-text {
+      color: var(--orange);
+    }
+    
+    .username-text {
+      transition: color 0.3s ease;
+      position: relative;
+    }
+    
+    .username-text::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--orange);
+      transition: width 0.3s ease;
+    }
+    
+    .username-cell:hover .username-text::after {
+      width: 100%;
+    }
+    
+    .points {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .no-results {
+      padding: 3rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .back-button {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      margin-top: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: none;
+      margin-left: auto;
+      margin-right: auto;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .back-button:hover {
+      background: var(--orange);
+      transform: translateY(-2px);
+    }
+    
+    .logo {
+      max-width: 120px;
+      height: auto;
+      margin-bottom: 1rem;
+    }
+
+    .highlighted {
+      background-color: var(--highlight) !important;
+    }
+    
+    .twitter-icon {
+      margin-left: 6px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.5);
+      transition: color 0.3s ease;
+    }
+    
+    .username-cell:hover .twitter-icon {
+      color: #1DA1F2;
+    }
+    
+    /* Row animations */
+    .row-appear {
+      animation: slideInRight 0.4s ease-out forwards;
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(26, 26, 26, 0.95);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      z-index: 1000;
+      animation: slideInUp 0.3s ease-out, fadeOut 0.3s ease-out 2.5s forwards;
+      max-width: 300px;
+    }
+    
+    .toast-icon {
+      margin-right: 10px;
+      color: var(--orange);
+    }
+    
+    @keyframes slideInUp {
+      from {
+        transform: translateY(100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .container {
+        padding: 2rem 1rem;
+      }
+      
+      h1 {
+        font-size: 2.5rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      #table_div th, #table_div td {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+      }
+      
+      .pfp {
+        width: 28px;
+        height: 28px;
+        margin-right: 0.5rem;
+      }
+      
+      #table_div th:nth-child(1), #table_div td:nth-child(1) {
+        width: 3rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .subtitle {
+        font-size: 0.9rem;
+      }
+      
+      #search-input {
+        font-size: 0.9rem;
+        padding: 10px 15px 10px 40px;
+      }
+      
+      #table_div th:nth-child(3), #table_div td:nth-child(3) {
+        width: 6rem;
+      }
     }
   </style>
 </head>
 <body>
-  <button id="mode-toggle">🌙</button>
+  <video class="background-video" autoplay loop muted playsinline>
+    <source src="https://sachdev.b-cdn.net/hero-compressed.mp4" type="video/mp4">
+  </video>
+  <div class="overlay"></div>
+  
   <div class="container">
-    <h1>375yap Leaderboard</h1>
-    <div id="search-container">
-      <input id="search-input" placeholder="🔍 Search username…" />
-      <button id="search-button">Go</button>
+    <div class="header">
+      <h1>375yap Leaderboard</h1>
+      <p class="subtitle">Check out top users ranked by their performance scores</p>
     </div>
+    
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <i class="fas fa-search search-icon"></i>
+        <input id="search-input" type="text" placeholder="Search for username..." autocomplete="off" />
+        <button id="clear-search"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    
     <div class="dashboard">
       <div class="table-wrapper">
         <div id="table_div"></div>
       </div>
     </div>
+    
+    <button id="back-button" class="back-button">
+      <i class="fas fa-arrow-left"></i> Back to Leaderboard
+    </button>
   </div>
 
-  <script>
-    google.charts.load('current',{packages:['table']});
-    const root = document.documentElement;
-    const saved = localStorage.getItem('mode') || 'dark';
-    root.classList.add(saved);
-    document.getElementById('mode-toggle').textContent = saved==='dark'?'🌞':'🌙';
-    document.getElementById('mode-toggle').onclick = () => {
-      const now = root.classList.contains('dark') ? 'light' : 'dark';
-      root.classList.toggle('dark');
-      root.classList.toggle('light');
-      localStorage.setItem('mode', now);
-      document.getElementById('mode-toggle').textContent = now==='dark'?'🌞':'🌙';
-    };
+  <div id="toast-container"></div>
 
+  <script>
+    google.charts.load('current', {packages: ['table']});
+    
+    // DOM elements
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const backButton = document.getElementById('back-button');
+    const toastContainer = document.getElementById('toast-container');
+    
+    // Global variables
+    let allUsers = [];
+    let pfpMap = {};
+    let isSearchView = false;
+    
+    // Initialize app after Google Charts loads
     google.charts.setOnLoadCallback(init);
-    function init(){
+    
+    function init() {
       const SHEET_KEY = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
-      fetchPFPs(SHEET_KEY).then(pfpMap => loadScores(SHEET_KEY, pfpMap));
+      fetchPFPs(SHEET_KEY).then(pfps => {
+        pfpMap = pfps;
+        loadScores(SHEET_KEY, pfpMap);
+      });
+      
+      // Set up event listeners
+      setupEventListeners();
     }
-    function fetchPFPs(key){
+    
+    function setupEventListeners() {
+      // Dynamic search functionality
+      searchInput.addEventListener('input', handleSearch);
+      
+      // Clear search button
+      clearSearchBtn.addEventListener('click', clearSearch);
+      
+      // Back button
+      backButton.addEventListener('click', () => {
+        renderLeaderboard(allUsers, pfpMap);
+        backButton.style.display = 'none';
+        isSearchView = false;
+      });
+      
+      // Toggle clear button visibility based on input
+      searchInput.addEventListener('input', () => {
+        clearSearchBtn.style.display = searchInput.value ? 'block' : 'none';
+      });
+    }
+    
+    function fetchPFPs(key) {
       return new Promise(resolve => {
         const q = new google.visualization.Query(
           `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?gid=0&headers=1&tq=select%20B%2C%20F`
         );
         q.send(res => {
-          const dt = res.getDataTable(), map={};
-          for(let i=0;i<dt.getNumberOfRows();i++){
-            map[dt.getValue(i,0)] = dt.getValue(i,1);
+          const dt = res.getDataTable(), map = {};
+          for (let i = 0; i < dt.getNumberOfRows(); i++) {
+            map[dt.getValue(i, 0)] = dt.getValue(i, 1);
           }
           resolve(map);
         });
       });
     }
-    function loadScores(key, pfpMap){
+    
+    function loadScores(key, pfpMap) {
       const q = new google.visualization.Query(
         `https://docs.google.com/spreadsheets/d/${key}/gviz/tq?sheet=Temporary%20LB&headers=1&tq=select%20A%2C%20B%20order%20by%20B%20desc`
       );
       q.send(res => {
         const dt = res.getDataTable();
-        const all = [];
-        for(let i=0;i<dt.getNumberOfRows();i++){
-          all.push({u:dt.getValue(i,0), pts:dt.getValue(i,1)});
+        allUsers = [];
+        for (let i = 0; i < dt.getNumberOfRows(); i++) {
+          allUsers.push({
+            username: dt.getValue(i, 0), 
+            points: dt.getValue(i, 1)
+          });
         }
-        render(all, pfpMap);
+        renderLeaderboard(allUsers, pfpMap);
       });
     }
-    function render(all, pfpMap){
-      const top50 = all.slice(0,50);
-      const div = document.getElementById('table_div'); div.innerHTML='';
+    
+    function renderLeaderboard(users, pfpMap, searchTerm = '') {
+      const tableDiv = document.getElementById('table_div');
+      tableDiv.innerHTML = '';
+      
+      if (users.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.innerHTML = `
+          <i class="fas fa-search" style="font-size: 2rem; opacity: 0.5; margin-bottom: 1rem;"></i>
+          <h3>No users found</h3>
+          <p>Try searching with a different username</p>
+        `;
+        tableDiv.appendChild(noResults);
+        return;
+      }
+      
+      // Create table element
       const table = document.createElement('table');
-      const thead = table.createTHead().insertRow();
-      ['#','User','Points',''].forEach(h=>{
-        const th=document.createElement('th'); th.textContent=h; thead.appendChild(th);
+      
+      // Create table header
+      const thead = table.createTHead();
+      const headerRow = thead.insertRow();
+      
+      // Add header cells
+      ['#', 'User', 'Points', ''].forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
       });
+      
+      // Create table body
       const tbody = table.createTBody();
-      top50.forEach((r,i)=>{
+      
+      // Add user rows
+      users.forEach((user, index) => {
         const row = tbody.insertRow();
-        // rank
-        row.insertCell().textContent = i+1;
-        // user + pfp
-        const cu = row.insertCell();
+        
+        // Add animation delay for staggered entry
+        row.style.opacity = "0";
+        setTimeout(() => {
+          row.classList.add('row-appear');
+        }, index * 50);
+        
+        // Rank column
+        const rankCell = row.insertCell();
+        
+        // If in search view, find user's actual rank in the full list
+        if (isSearchView) {
+          for (let i = 0; i < allUsers.length; i++) {
+            if (allUsers[i].username === user.username) {
+              rankCell.textContent = i + 1;
+              break;
+            }
+          }
+        } else {
+          rankCell.textContent = index + 1;
+        }
+        
+        // Apply special styling for top 3 ranks
+        if ((isSearchView && rankCell.textContent === '1') || (!isSearchView && index === 0)) {
+          rankCell.style.color = 'gold';
+          rankCell.style.fontWeight = '700';
+        } else if ((isSearchView && rankCell.textContent === '2') || (!isSearchView && index === 1)) {
+          rankCell.style.color = 'silver';
+          rankCell.style.fontWeight = '700';
+        } else if ((isSearchView && rankCell.textContent === '3') || (!isSearchView && index === 2)) {
+          rankCell.style.color = '#cd7f32'; // bronze
+          rankCell.style.fontWeight = '700';
+        }
+        
+        // User column with profile picture
+        const userCell = row.insertCell();
+        userCell.className = 'username-cell';
+        userCell.onclick = () => {
+          window.open(`https://twitter.com/${user.username}`, '_blank');
+          showToast(`Opening @${user.username}'s Twitter profile`);
+        };
+        
+        // Create profile picture element
         const img = document.createElement('img');
-        img.src = pfpMap[r.u] || '';
+        img.src = pfpMap[user.username] || 'https://via.placeholder.com/32';
         img.className = 'pfp';
-        cu.appendChild(img);
-        cu.appendChild(document.createTextNode(r.u));
-        // points fixed 2 decimals
-        row.insertCell().textContent = r.pts.toFixed(2);
-        // spacer
+        img.alt = `${user.username}'s profile`;
+        img.onerror = function() {
+          this.src = 'https://via.placeholder.com/32';
+        };
+        userCell.appendChild(img);
+        
+        // Add username text with Twitter icon
+        const usernameSpan = document.createElement('span');
+        usernameSpan.className = 'username-text';
+        usernameSpan.textContent = user.username;
+        userCell.appendChild(usernameSpan);
+        
+        // Add Twitter icon
+        const twitterIcon = document.createElement('i');
+        twitterIcon.className = 'fab fa-twitter twitter-icon';
+        userCell.appendChild(twitterIcon);
+        
+        // Highlight searched term if present
+        if (searchTerm && user.username.toLowerCase().includes(searchTerm.toLowerCase())) {
+          row.classList.add('highlighted');
+        }
+        
+        // Points column
+        const pointsCell = row.insertCell();
+        pointsCell.className = 'points';
+        pointsCell.textContent = user.points.toFixed(2);
+        
+        // Empty column (can be used for actions later)
         row.insertCell();
       });
-      div.appendChild(table);
-
-      // search hook
-      if(all.length>50){
-        const sc = document.getElementById('search-container');
-        sc.style.display='block';
-        document.getElementById('search-button').onclick=()=>{
-          const q=document.getElementById('search-input').value.trim().toLowerCase();
-          const found=all.find(x=>x.u.toLowerCase()===q);
-          if(!found) return alert('User not found');
-          render([found], pfpMap);
-        };
+      
+      // Add table to the DOM
+      tableDiv.appendChild(table);
+    }
+    
+    function handleSearch() {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      
+      if (searchTerm === '') {
+        // Show top 50 if search is empty
+        renderLeaderboard(allUsers.slice(0, 50), pfpMap);
+        backButton.style.display = 'none';
+        isSearchView = false;
+        return;
       }
+      
+      // Filter users based on search term
+      const filteredUsers = allUsers.filter(user => 
+        user.username.toLowerCase().includes(searchTerm)
+      );
+      
+      // Display results (limit to first 20 for performance)
+      const resultsToShow = filteredUsers.slice(0, 20);
+      renderLeaderboard(resultsToShow, pfpMap, searchTerm);
+      
+      // Show back button if we're in search view
+      backButton.style.display = 'block';
+      isSearchView = true;
+    }
+
+    function clearSearch() {
+      searchInput.value = '';
+      clearSearchBtn.style.display = 'none';
+      renderLeaderboard(allUsers.slice(0, 50), pfpMap);
+      backButton.style.display = 'none';
+      isSearchView = false;
+    }
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <i class="fas fa-external-link-alt toast-icon"></i>
+        <span>${message}</span>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // Remove toast after animation completes
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
     }
   </script>
 </body>
