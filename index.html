@@ -3,181 +3,145 @@
 <head>
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Roboto font -->
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <!-- Google Charts loader -->
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
-    /* === Theme variables === */
     :root {
-      --bg: #050607;       --fg: #E0E0E0;
-      --card-bg: rgba(26,26,26,0.9);
-      --th-bg: #FF3D14;
-      --row-even: #1E1E1E;  --row-odd: #181818;
+      --bg:#050607; --fg:#E0E0E0;
+      --card:#1A1A1A; --th:#FF3D14;
+      --even:#1E1E1E; --odd:#181818;
     }
     .light {
-      --bg: #F5F6F7;       --fg: #333;
-      --card-bg: #FFF;
-      --th-bg: #222;
-      --row-even: #EEE;    --row-odd: #FFF;
+      --bg:#F5F6F7; --fg:#333;
+      --card:#FFF; --th:#222;
+      --even:#EEE; --odd:#FFF;
     }
-
-    /* === Reset & Base === */
-    * { box-sizing:border-box; margin:0; padding:0; }
+    * { box-sizing:border-box; margin:0; padding:0 }
     body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: 'Roboto', sans-serif;
-      padding: 20px;
-      transition: background .3s, color .3s;
+      background:var(--bg); color:var(--fg);
+      font-family:'Roboto',sans-serif; transition:.3s;
     }
-    .container { max-width:800px; margin:0 auto; text-align:center; }
-    h1 { color:#FF3D14; font-size:2.5rem; margin-bottom:12px; }
-
-    /* === Toggles & Search === */
+    .wrap { max-width:800px; margin:0 auto; padding:20px; text-align:center }
+    h1 { color:#FF3D14; font-size:2.5rem; margin-bottom:12px }
     #controls {
-      display:flex; justify-content:center; gap:12px; margin-bottom:12px;
+      display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;
     }
-    #theme-toggle, #search {
-      padding:8px 12px; border-radius:4px; font-size:1rem;
+    #theme { background:none; border:1px solid var(--fg);
+      color:var(--fg); padding:6px; border-radius:4px;
+      cursor:pointer;
     }
-    #theme-toggle {
-      background: none; border:1px solid var(--fg); color:var(--fg);
-      cursor: pointer;
-    }
-    .light #theme-toggle { border-color:#333; }
     #search {
-      flex:1; max-width:300px;
-      border:1px solid var(--fg); background:transparent;
-      color:var(--fg);
+      flex:1; max-width:250px; padding:6px 8px; border:1px solid var(--fg);
+      border-radius:4px; background:transparent; color:var(--fg);
     }
-    .light #search { border-color:#ccc; }
-
-    /* === Leaderboard Card === */
-    #leaderboard {
-      background: var(--card-bg);
-      border:1px solid var(--fg);
-      border-radius:8px;
-      overflow-y: auto;
-      max-height:60vh;
-      margin:0 auto;
-      box-shadow:0 8px 24px rgba(0,0,0,0.5);
+    .light #theme { border-color:#333 }
+    .light #search { border-color:#999; color:#333 }
+    #board {
+      background:var(--card); border:1px solid var(--fg);
+      border-radius:8px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      max-height:60vh; overflow-y:auto;
     }
-    table {
-      width:100%; border-collapse:collapse;
-      table-layout:fixed;
-    }
-    th, td {
-      padding:12px; white-space:nowrap;
-    }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:12px; white-space:nowrap; }
     th {
-      background: var(--th-bg);
-      color:#fff; position:sticky; top:0; z-index:1;
-      font-weight:700; text-align:left;
+      background:var(--th); color:#fff;
+      position:sticky; top:0; z-index:1; text-align:left;
     }
-    tbody tr:nth-child(even) td { background: var(--row-even); }
-    tbody tr:nth-child(odd)  td { background: var(--row-odd);  }
-    .user-cell {
-      display:flex; align-items:center;
-      overflow:hidden; text-overflow:ellipsis;
+    tbody tr:nth-child(even) { background:var(--even) }
+    tbody tr:nth-child(odd ) { background:var(--odd)  }
+    .user {
+      display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis;
     }
-    .user-cell img {
-      width:32px; height:32px;
-      border-radius:50%;
-      margin-right:8px;
-      object-fit:cover;
+    .user img {
+      width:32px; height:32px; border-radius:50%;
+      margin-right:8px; object-fit:cover;
     }
-    .points { text-align:right; font-variant-numeric:tabular-nums; }
-    @media (max-width:768px) {
-      #leaderboard { max-width:90%; }
+    .pts { text-align:right; font-variant-numeric:tabular-nums }
+    @media(max-width:768px){
+      #controls { flex-direction:column; align-items:center }
+      #search { max-width:100% }
     }
   </style>
 </head>
 <body class="dark">
-  <div class="container">
+  <div class="wrap">
     <h1>375yap Leaderboard</h1>
-
     <div id="controls">
-      <button id="theme-toggle">🌙</button>
-      <input id="search" type="search" placeholder="🔍 Search username…" />
+      <button id="theme">🌙</button>
+      <input id="search" type="search" placeholder="🔍 Search username…">
     </div>
-
-    <div id="leaderboard">
+    <div id="board">
       <table>
-        <thead>
-          <tr>
-            <th>User</th>
-            <th class="points">Points</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
+        <thead><tr><th>User</th><th class="pts">Points</th></tr></thead>
+        <tbody id="rows">
+          <tr><td colspan="2">Loading…</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 
   <script>
-    // --- CONFIGURE SHEET ID & TAB NAME ---
+    // ─── PASTE your published‐to‐web ID and GID here ───
     const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-    const TAB    = 'Temporary LB';       // exact tab name
+    const GID    = '412750346';
 
-    // load Google Charts for helper
-    google.charts.load('current',{packages:['corechart']});
+    let full = [];
 
-    // entry point
-    google.charts.setOnLoadCallback(init);
-
-    async function init() {
-      // 1) fetch the sheet via GViz
-      const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?sheet=${encodeURIComponent(TAB)}&headers=1&tq=${encodeURIComponent('select C,A,B order by B desc')}`;
-      const res = await fetch(url);
-      const txt = await res.text();
-      // extract JSON payload
-      const json = JSON.parse(txt.match(/setResponse\(([\s\S]+)\);/)[1]);
-      const cols = json.table.cols.map(c=>c.label);
-      const rows = json.table.rows.map(r=>r.c.map(c=>c&&c.v));
-
-      // 2) build full array [pfp, user, pts]
-      const data = rows.map(r => [ r[0]||'', r[1]||'', parseFloat(r[2]||0) ]);
-
-      // 3) render top 50
-      window.full = data;
-      renderTable(data.slice(0,50));
-
-      // 4) wire search
-      document.getElementById('search').oninput = e => {
-        const q = e.target.value.trim().toLowerCase();
-        if (!q) return renderTable(full.slice(0,50));
-        const f = full.find(r=>r[1].toLowerCase()===q);
-        renderTable(f ? [f] : []);
-      };
-
-      // 5) wire theme toggle
-      const body = document.body;
-      document.getElementById('theme-toggle').onclick = ()=>{
-        body.classList.toggle('light');
-        body.classList.toggle('dark');
-        document.getElementById('theme-toggle').textContent =
-          body.classList.contains('dark') ? '🌙' : '🌞';
-      };
+    function fetchData() {
+      const tq = encodeURIComponent('select C,A,B order by B desc');
+      const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}&headers=1&tq=${tq}`;
+      fetch(url)
+        .then(r=>r.text())
+        .then(txt=>{
+          // extract JSON payload from gviz
+          const json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/)[1]);
+          const rows = json.table.rows.map(r=>r.c.map(c=>c&&c.v));
+          // [PFP, Username, Points]
+          full = rows.map(r=>[r[0]||'', r[1]||'', parseFloat(r[2]||0)]);
+          render(full.slice(0,50));
+          bindControls();
+        })
+        .catch(err=>{
+          console.error(err);
+          document.getElementById('rows').innerHTML =
+            `<tr><td colspan=2 style="text-align:center;color:#FF3D14">Error loading sheet</td></tr>`;
+        });
     }
 
-    function renderTable(data) {
-      const tbody = document.getElementById('rows');
-      tbody.innerHTML = data.length
-        ? data.map(r=>`
+    function render(arr) {
+      const html = arr.length
+        ? arr.map(r=>`
             <tr>
               <td>
-                <div class="user-cell">
-                  ${r[0] ? `<img src="${r[0]}" onerror="this.src='';">` : ''}
+                <div class="user">
+                  ${ r[0] ? `<img src="${r[0]}" onerror="this.src='';">` : '' }
                   ${r[1]}
                 </div>
               </td>
-              <td class="points">${r[2].toFixed(2)}</td>
+              <td class="pts">${r[2].toFixed(2)}</td>
             </tr>
           `).join('')
-        : '<tr><td colspan=2>No user found.</td></tr>';
+        : `<tr><td colspan=2 style="text-align:center">No results</td></tr>`;
+      document.getElementById('rows').innerHTML = html;
     }
+
+    function bindControls() {
+      document.getElementById('search').oninput = e=>{
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) return render(full.slice(0,50));
+        const found = full.filter(r=>r[1].toLowerCase().includes(q));
+        render(found.length>50 ? found.slice(0,50) : found);
+      };
+      document.getElementById('theme').onclick = ()=>{
+        document.body.classList.toggle('light');
+        document.getElementById('theme').textContent =
+          document.body.classList.contains('dark') ? '🌙' : '🌞';
+      };
+    }
+
+    // kick it off
+    fetchData();
   </script>
 </body>
 </html>
