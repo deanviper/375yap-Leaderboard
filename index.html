@@ -4,8 +4,10 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Roboto & Charts loader -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
   <style>
-    /* ==== Color Variables ==== */
     :root {
       --bg: #050607;
       --text: #B9C1C1;
@@ -14,200 +16,133 @@
       --orange: #FF3D14;
     }
     .light {
-      --bg: #FFFFFF;
-      --text: #000000;
-      --panel-bg: #F5F5F5;
-      --border: #CCC;
+      --bg: #fff;
+      --text: #000;
+      --panel-bg: #f5f5f5;
+      --border: #ccc;
       --orange: #FF3D14;
     }
 
-    /* ==== Base Styles ==== */
-    * { box-sizing: border-box; margin:0; padding:0; }
+    * { box-sizing:border-box; margin:0; padding:0; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Roboto', sans-serif;
-      line-height: 1.4;
+      font-family:'Roboto',sans-serif;
       transition: background .3s, color .3s;
     }
-    a { color: inherit; }
-    button { cursor: pointer; }
+    button { cursor:pointer; border:none; background:none; }
 
-    /* ==== Toggle Button ==== */
     #mode-toggle {
       position: fixed;
-      top: 12px;
-      right: 12px;
-      background: none;
-      border: none;
-      font-size: 1.4rem;
+      top:12px; right:12px;
+      font-size:1.4rem;
       color: var(--orange);
-      z-index: 1000;
+      z-index:1000;
     }
 
-    /* ==== Container ==== */
     .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1rem 4rem;
+      max-width:1200px;
+      margin:0 auto;
+      padding:2rem 1rem 4rem;
+      text-align:center;
     }
-
-    /* ==== Header ==== */
     .title {
-      font-size: 2.5rem;
+      font-size:2.5rem;
       color: var(--orange);
-      text-align: center;
-      text-shadow: 0 2px 4px rgba(0,0,0,.7);
-      margin-bottom: 1rem;
+      margin-bottom:1rem;
+      text-shadow:0 2px 4px rgba(0,0,0,.7);
     }
 
-    /* ==== Legend + Table Layout ==== */
+    /* Dashboard = table + (no legend) */
     .dashboard {
-      display: flex;
-      gap: 2rem;
-      justify-content: center;
-      align-items: center;
-      padding: 0 1rem;
-      /* shift everything left 20% on desktop */
-      padding-left: 20vw;
+      display:flex;
+      justify-content:center;
+      padding:0 20px;
+      /* shift left 20% on desktop */
+      padding-left:20vw;
     }
-    .legend {
-      flex: 0 0 200px;
-      display: flex;
-      flex-direction: column;
-      gap: .75rem;
-      font-size: .95rem;
-    }
-    .legend h2 {
-      font-weight: bold;
-      text-decoration: underline;
-      color: var(--text);
-      margin-bottom: .5rem;
-    }
-    .tier-item {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      color: var(--text);
-    }
-    .swatch {
-      width: 1rem;
-      height: 1rem;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
-    .tier-I .swatch    { background: #FFD8B2; }
-    .tier-II .swatch   { background: #FFB266; }
-    .tier-FAKER .swatch{ background: #FF3D14; }
-
-    /* ==== Table Wrapper ==== */
     .table-wrapper {
-      flex: 1;
-      max-width: 700px;
-      width: 75%;
+      flex:1;
+      max-width:700px;
+      width:75%;
     }
-    /* Search bar */
     #search-container {
-      margin-bottom: .75rem;
-      text-align: center;
+      margin-bottom:.75rem;
+      display:none;
     }
     #search-input {
-      width: 60%;
-      max-width: 300px;
-      padding: 6px 8px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      margin-right: 4px;
+      width:60%;
+      max-width:300px;
+      padding:6px 8px;
+      border:1px solid var(--border);
+      border-radius:4px;
+      margin-right:4px;
     }
     #search-button {
-      padding: 6px 12px;
-      border: 1px solid var(--border);
+      padding:6px 12px;
       background: var(--orange);
-      color: #fff;
-      border-radius: 4px;
+      color:#fff;
+      border-radius:4px;
     }
 
-    /* ==== Table Styles ==== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    /* Table */
+    #table_div table {
+      width:100%;
+      border-collapse:collapse;
       background: var(--panel-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
+      border:1px solid var(--border);
+      border-radius:8px;
+      overflow:hidden;
     }
-    thead {
+    #table_div th, #table_div td {
+      padding:.75rem 1rem;
+      font-size:.95rem;
+      white-space:nowrap;
+    }
+    #table_div thead {
       background: var(--orange);
-      color: #fff;
+      color:#fff;
     }
-    th, td {
-      padding: .75rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,.1);
-      white-space: nowrap;
-      font-size: .95rem;
+    #table_div th:nth-child(2),
+    #table_div td:nth-child(2) {
+      text-align:right;
     }
-    th:nth-child(2), td:nth-child(2) {
-      text-align: right;
+    #table_div th:nth-child(3),
+    #table_div td:nth-child(3) {
+      text-align:center;
     }
-    th:nth-child(3), td:nth-child(3) {
-      text-align: center;
+    #table_div tbody tr:nth-child(odd) {
+      background:#1E1E1E;
     }
-    tbody tr:nth-child(odd) {
-      background: #1E1E1E;
-    }
-    /* PFP image */
     .pfp {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      vertical-align: middle;
-      margin-right: .5rem;
+      width:24px; height:24px;
+      border-radius:50%;
+      vertical-align:middle;
+      margin-right:.5rem;
     }
 
-    /* ==== Responsive (mobile) ==== */
-    @media (max-width: 768px) {
+    @media (max-width:768px) {
       .dashboard {
-        flex-direction: column;
-        padding-left: 1rem;  /* undo desktop shift */
-      }
-      .legend {
-        width: 100%;
-        align-items: center;
-        text-align: center;
+        flex-direction:column;
+        padding-left:0;
       }
       .table-wrapper {
-        width: 100%;
-        max-width: 600px;
+        width:100%;
+        max-width:600px;
       }
+      /* keep mobile scrollable horizontally */
+      #table_div { overflow-x:auto; }
     }
   </style>
 </head>
 <body>
   <button id="mode-toggle">🌙</button>
   <div class="container">
-    <!-- mobile header (same styling) -->
     <h1 class="title">375yap Leaderboard</h1>
-
     <div class="dashboard">
-      <!-- Legend panel -->
-      <div class="legend">
-        <h2>Please don’t change your Discord username</h2>
-        <div class="tier-item tier-I">
-          <div class="swatch"></div><div>Gamer I = 0 – 199 XP</div>
-        </div>
-        <div class="tier-item tier-II">
-          <div class="swatch"></div><div>Gamer II = 200 – 399 XP</div>
-        </div>
-        <div class="tier-item tier-FAKER">
-          <div class="swatch"></div><div>FAKER = 400+ XP</div>
-        </div>
-      </div>
-
-      <!-- Table + Search -->
       <div class="table-wrapper">
-        <div id="search-container" style="display:none">
-          <input id="search-input" type="text" placeholder="Search username…">
+        <div id="search-container">
+          <input id="search-input" placeholder="Search username…" />
           <button id="search-button">Go</button>
         </div>
         <div id="table_div"></div>
@@ -216,94 +151,86 @@
   </div>
 
   <script>
-    // ==== Dark/Light mode toggle ====
-    const toggle = document.getElementById('mode-toggle');
+    // Dark/light toggle
+    google.charts.load('current',{packages:['table']}); // also loads charts
     const root = document.documentElement;
     const saved = localStorage.getItem('mode') || 'dark';
     root.classList.add(saved);
-    toggle.textContent = saved==='dark' ? '🌞' : '🌙';
-    toggle.onclick = () => {
+    document.getElementById('mode-toggle').textContent = saved==='dark'?'🌞':'🌙';
+    document.getElementById('mode-toggle').onclick = () => {
       const now = root.classList.contains('dark') ? 'light' : 'dark';
       root.classList.toggle('dark');
       root.classList.toggle('light');
-      toggle.textContent = now==='dark' ? '🌞' : '🌙';
       localStorage.setItem('mode', now);
+      document.getElementById('mode-toggle').textContent = now==='dark'?'🌞':'🌙';
     };
 
-    // ==== Load data from Google Sheets ====
-    const SHEET_ID = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
-    const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?`;
+    // once charts loaded, kick off data load
+    google.charts.setOnLoadCallback(loadData);
 
-    // 1) fetch PFP map from first sheet (gid=0)
-    new google.visualization.Query(
-      BASE + 'gid=0&headers=1&tq=select%20A%2C%20F'
-    ).send(resPFP => {
-      if (resPFP.isError()) return console.error(resPFP.getMessage());
-      const pfpData = resPFP.getDataTable();
-      const pfpMap = {};
-      for (let i=0; i<pfpData.getNumberOfRows(); i++) {
-        const u = pfpData.getValue(i,0);
-        const url = pfpData.getValue(i,1);
-        pfpMap[u] = url;
-      }
+    function loadData() {
+      const SHEET = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
+      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET}/gviz/tq?`;
+      let pfpMap = {};
 
-      // 2) fetch Yap leaderboard
-      new google.visualization.Query(
-        BASE + 'sheet=Temporary%20LB&headers=1&tq=select%20A%2C%20B%20order%20by%20B%20desc'
-      ).send(resLB => {
-        if (resLB.isError()) return console.error(resLB.getMessage());
-        const lb = resLB.getDataTable();
-        const allRows = [];
-        for (let i=0; i<lb.getNumberOfRows(); i++) {
-          allRows.push({
-            user: lb.getValue(i,0),
-            pts: lb.getValue(i,1)
-          });
-        }
-        render(allRows, pfpMap);
-      });
-    });
+      // 1) PFPs from gid=0
+      new google.visualization.Query(BASE+'gid=0&headers=1&tq=select%20A%2C%20F')
+        .send(res => {
+          const dt = res.getDataTable();
+          for (let i=0; i<dt.getNumberOfRows(); i++) {
+            pfpMap[dt.getValue(i,0)] = dt.getValue(i,1);
+          }
+          loadLB(pfpMap);
+        });
+    }
 
-    // ==== Render function ====
-    function render(allRows, pfpMap) {
-      const top50 = allRows.slice(0,50);
-      const tableDiv = document.getElementById('table_div');
-      tableDiv.innerHTML = '';
+    function loadLB(pfpMap) {
+      const SHEET = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
+      const BASE = `https://docs.google.com/spreadsheets/d/${SHEET}/gviz/tq?sheet=Temporary%20LB&headers=1&tq=select%20A%2C%20B%20order%20by%20B%20desc`;
+      new google.visualization.Query(BASE)
+        .send(res => {
+          const dt = res.getDataTable();
+          const all = [];
+          for (let i=0; i<dt.getNumberOfRows(); i++) {
+            all.push({u:dt.getValue(i,0), pts:dt.getValue(i,1)});
+          }
+          draw(all, pfpMap);
+        });
+    }
+
+    function draw(all, pfpMap) {
+      const top50 = all.slice(0,50);
+      const div = document.getElementById('table_div');
+      div.innerHTML = '';
       const tbl = document.createElement('table');
-      // header
-      const thead = tbl.createTHead();
-      const hr = thead.insertRow();
-      ['User','Points'].forEach(txt => {
-        const th=document.createElement('th');
-        th.textContent = txt;
-        hr.appendChild(th);
+      const thead = tbl.createTHead().insertRow();
+      ['Username','Points',''].forEach(t=>{
+        const th = document.createElement('th');
+        th.textContent = t;
+        thead.appendChild(th);
       });
-      // body
-      const tb = tbl.createTBody();
-      top50.forEach(r => {
-        const tr=tb.insertRow();
-        const tdUser=tr.insertCell();
-        const img=document.createElement('img');
-        img.src=pfpMap[r.user]||'';
-        img.className='pfp';
-        tdUser.appendChild(img);
-        tdUser.appendChild(document.createTextNode(r.user));
-        const tdPts=tr.insertCell();
-        tdPts.textContent = r.pts;
-        tb.appendChild(tr);
+      const tbody = tbl.createTBody();
+      top50.forEach(r=>{
+        const row = tbody.insertRow();
+        const u = row.insertCell();
+        const img = document.createElement('img');
+        img.src = pfpMap[r.u]||'';
+        img.className = 'pfp';
+        u.appendChild(img);
+        u.appendChild(document.createTextNode(r.u));
+        row.insertCell().textContent = r.pts;
+        row.insertCell(); // empty for alignment
       });
-      tableDiv.appendChild(tbl);
+      div.appendChild(tbl);
 
-      // search bar if more than 50
-      if (allRows.length>50) {
-        const sc = document.getElementById('search-container');
-        sc.style.display = 'block';
+      // search if >50
+      if (all.length>50) {
+        document.getElementById('search-container').style.display = 'block';
         document.getElementById('search-button').onclick = () => {
-          const q = document.getElementById('search-input').value.trim();
-          const found = allRows.find(r=>r.user.toLowerCase()===q.toLowerCase());
+          const q = document.getElementById('search-input').value.trim().toLowerCase();
+          const found = all.find(x=>x.u.toLowerCase()===q);
           if (!found) return alert('User not found');
-          // show found single-row table
-          render([found], pfpMap);
+          draw([found], pfpMap);
         };
       }
     }
