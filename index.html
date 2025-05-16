@@ -4,157 +4,138 @@
   <meta charset="utf-8">
   <title>375yap Leaderboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/charts/loader.js"></script>
-  <script>
-    google.charts.load('current',{packages:['table']});
-    google.charts.setOnLoadCallback(drawTable);
-
-    function drawTable() {
-      // 🔑 POINT TO YOUR PUBLISHED SHEET, sheet=Temporary%20LB selects the second tab
-      const sheetUrl = 
-        'https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK/gviz/tq'
-        + '?sheet=Temporary%20LB&headers=1'
-        + '&tq=select%20A%2C%20B';
-      new google.visualization.Query(sheetUrl)
-        .send(res => {
-          if (res.isError()) {
-            document.body.innerHTML = '<p style="color:#FF3D14">Error: '+res.getMessage()+'</p>';
-            return;
-          }
-          const data = res.getDataTable();
-          // trim to top 50 for initial display
-          const view = new google.visualization.DataView(data);
-          view.setRows(view.getRange().length > 50 ? {start:0, length:50} : {start:0, length:view.getRange().length});
-
-          const table = new google.visualization.Table(document.getElementById('table_div'));
-          table.draw(view,{
-            showRowNumber: false,
-            width: '100%',
-            height: '100%',
-          });
-
-          // format points to 2 decimals:
-          for (let i = 0; i < view.getNumberOfRows(); i++) {
-            const v = view.getValue(i,1);
-            table.getChart().getContainer().querySelectorAll('tbody tr')[i]
-              .cells[1].textContent = parseFloat(v).toFixed(2);
-          }
-        });
-    }
-
-    // simple search/filter
-    function onSearch(e) {
-      const q = e.target.value.toLowerCase();
-      const rows = document.querySelectorAll('#table_div tbody tr');
-      rows.forEach(r => {
-        const user = r.cells[0].textContent.toLowerCase();
-        r.style.display = user.includes(q) ? '' : 'none';
-      });
-    }
-
-    // light/dark toggle
-    function toggleTheme() {
-      document.body.classList.toggle('light');
-      document.getElementById('theme-btn').textContent =
-        document.body.classList.contains('light') ? 'Dark Mode' : 'Light Mode';
-    }
-  </script>
   <style>
-    /* Base */
+    * { box-sizing:border-box; margin:0; padding:0 }
     body {
-      margin:0; padding:40px 0;
-      background:linear-gradient(135deg,#050607,#1A1A1A);
-      color:#B9C1C1; font-family:'Roboto',sans-serif;
-      text-align:center;
-      transition:background .3s, color .3s;
+      font-family:'Roboto',sans-serif;
+      background:#050607; color:#B9C1C1;
+      padding:20px; text-align:center;
     }
-    body.light {
-      background:#f4f4f4; color:#222;
+    .light body {
+      background:#fff; color:#111;
     }
-    /* Header */
-    .header-wrapper {
-      width:75%; max-width:700px; margin:0 auto 20px;
-    }
-    h1 {
-      margin:0; font-size:2.5rem; color:#FF3D14;
-      text-shadow:0 2px 4px rgba(0,0,0,0.7);
-    }
-    body.light h1 { text-shadow:none; }
-
-    /* Search + toggle */
-    #controls {
-      display:flex; justify-content:center; align-items:center;
-      gap:12px; margin-bottom:20px;
-    }
-    #search {
-      padding:8px 12px; font-size:1rem; width:250px;
-      border-radius:4px; border:1px solid #888;
-    }
-    body.light #search { border:1px solid #ccc; }
     #theme-btn {
-      padding:8px 12px; font-size:1rem;
-      background:#222; color:#fff; border:none; border-radius:4px;
-      cursor:pointer;
+      position:fixed; top:16px; right:16px;
+      background:none; border:1px solid #B9C1C1;
+      color:inherit; padding:8px 12px; cursor:pointer;
+      border-radius:4px;
     }
-    body.light #theme-btn {
-      background:#ddd; color:#222;
+    .light #theme-btn { border-color:#333; }
+    h1 { color:#FF3D14; margin-bottom:16px; }
+    #search {
+      padding:8px 12px; width:250px; max-width:80%;
+      margin-bottom:16px; border:1px solid #666; border-radius:4px;
     }
-
-    /* Table container */
+    .light #search { border:1px solid #ccc; }
     #table_div {
-      margin:0 auto;
-      width:75%; max-width:700px;
-      max-height:70vh; overflow-y:auto; overflow-x:hidden;
-      background:rgba(26,26,26,0.9);
-      border:1px solid #B9C1C1; border-radius:12px;
-      padding:10px; box-shadow:0 8px 24px rgba(0,0,0,0.5);
-      transition:background .3s, border .3s;
+      margin:0 auto; width:75%; max-width:700px;
+      max-height:60vh; overflow-y:auto;
+      background:rgba(26,26,26,0.9); border:1px solid #B9C1C1;
+      border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.5);
     }
-    body.light #table_div {
-      background:#fff; border:1px solid #ccc;
-    }
-    /* Chart styling */
     .google-visualization-table-th {
       background:#FF3D14!important; color:#fff!important;
-      font-weight:700!important; font-size:1.1rem!important;
-      text-align:center!important; padding:12px 16px!important;
-    }
-    body.light .google-visualization-table-th {
-      background:#FF3D14!important;
+      font-weight:700!important; text-align:center!important;
     }
     .google-visualization-table-tr-even { background:#1E1E1E!important; }
     .google-visualization-table-tr-odd  { background:#181818!important; }
-    body.light .google-visualization-table-tr-even { background:#f9f9f9!important; }
-    body.light .google-visualization-table-tr-odd  { background:#eaeaea!important; }
     .google-visualization-table-td {
-      padding:12px 16px!important; border-bottom:1px solid #333!important;
-      white-space:nowrap;
+      padding:12px!important; white-space:nowrap!important;
+      text-align:center!important;
     }
-    body.light .google-visualization-table-td {
-      border-bottom:1px solid #ccc!important;
+    .user-cell { display:flex; align-items:center; justify-content:center; }
+    .user-cell img {
+      width:32px; height:32px; border-radius:50%;
+      margin-right:8px; object-fit:cover;
     }
-    #table_div table { border-collapse:separate; border-spacing:0; }
-    #table_div thead th { position:sticky; top:0; z-index:2; }
-
-    /* Mobile tweaks */
-    @media (max-width:768px) {
+    @media(max-width:768px) {
       #table_div { width:90%; }
-      #search { width:80%; }
     }
   </style>
 </head>
 <body>
-  <div class="header-wrapper">
-    <h1>375yap Leaderboard</h1>
-  </div>
-
-  <div id="controls">
-    <input id="search" type="text" placeholder="🔍 Search username…" oninput="onSearch(event)">
-    <button id="theme-btn" onclick="toggleTheme()">Light Mode</button>
-  </div>
+  <button id="theme-btn">☀️/🌙</button>
+  <h1>375yap Leaderboard</h1>
+  <input id="search" placeholder="🔍 Search username…" />
 
   <div id="table_div"></div>
+
+  <script>
+    google.charts.load('current',{packages:['table']});
+    google.charts.setOnLoadCallback(init);
+
+    // toggle light/dark
+    const btn = document.getElementById('theme-btn');
+    btn.addEventListener('click',()=>{
+      document.documentElement.classList.toggle('light');
+    });
+
+    function init() {
+      const SHEET_ID = '1nE4NPgFSHka7ByLLKaHWaVaKARMCrmb-_e1ZvpdV-cE';
+      const BASE = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK/gviz/tq?`;
+
+      // 1) fetch PFPs+timestamps from first sheet (gid=0)
+      new google.visualization.Query(BASE+'gid=0&headers=1&tq='+encodeURIComponent('select B,E,F'))
+        .send(res => {
+          const dt = res.getDataTable();
+          const pfpMap = {};
+          for (let i=0;i<dt.getNumberOfRows();i++) {
+            const user = dt.getValue(i,0);
+            const time = new Date(dt.getValue(i,1)).getTime();
+            const url  = dt.getValue(i,2);
+            if (!pfpMap[user] || time>pfpMap[user].time) {
+              pfpMap[user] = { url, time };
+            }
+          }
+          fetchLeaderboard(pfpMap);
+        });
+    }
+
+    function fetchLeaderboard(pfpMap) {
+      const BASE = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK/gviz/tq?`;
+      // 2) fetch Temporary LB (Username A, Points B)
+      new google.visualization.Query(BASE+'sheet=Temporary%20LB&headers=1&tq='+encodeURIComponent('select A,B order by B desc'))
+        .send(res => {
+          const dt = res.getDataTable();
+          render(dt, pfpMap);
+        });
+    }
+
+    function render(dt, pfpMap) {
+      const rows = [];
+      for (let i=0;i<dt.getNumberOfRows()&&i<50;i++) {
+        rows.push({
+          user: dt.getValue(i,0),
+          pts: parseFloat(dt.getValue(i,1)).toFixed(2),
+          pfp: (pfpMap[dt.getValue(i,0)]||{}).url || ''
+        });
+      }
+      const data = new google.visualization.DataTable();
+      data.addColumn('string','Player');
+      data.addColumn('number','Points');
+      rows.forEach(r => {
+        const html = `<div class="user-cell">
+                        <img src="${r.pfp}" onerror="this.src='';"/>
+                        <span>${r.user}</span>
+                      </div>`;
+        data.addRow([ html, Number(r.pts) ]);
+      });
+
+      const table = new google.visualization.Table(document.getElementById('table_div'));
+      table.draw(data,{ allowHtml:true, width:'100%', height:'100%' });
+
+      // search
+      document.getElementById('search').oninput = e => {
+        const q = e.target.value.toLowerCase();
+        const trs = document.querySelectorAll('#table_div tbody tr');
+        trs.forEach(tr=>{
+          const name = tr.cells[0].textContent.toLowerCase();
+          tr.style.display = name.includes(q)?'':'none';
+        });
+      };
+    }
+  </script>
 </body>
 </html>
