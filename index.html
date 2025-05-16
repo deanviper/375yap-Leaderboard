@@ -12,9 +12,13 @@
       --bg-alt: #1A1A1A;
       --fg: #E0E0E0;
       --accent: #FF3D14;
+      --accent-light: #FF6242;
       --table-bg: rgba(26,26,26,0.9);
       --scrollbar-bg: #333;
       --scrollbar-thumb: #555;
+      --error: #FF3D14;
+      --warning: #FFC107;
+      --success: #4CAF50;
     }
     body {
       margin:0; padding:40px;
@@ -23,6 +27,8 @@
       color: var(--fg);
       text-align: center;
       transition: background .3s, color .3s;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
     body.light {
       --bg: #F5F5F5;
@@ -46,8 +52,9 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 20px;
+      flex-wrap: wrap;
     }
-    #themeToggle {
+    button {
       background: var(--bg-alt);
       border: 1px solid var(--fg);
       color: var(--fg);
@@ -57,10 +64,13 @@
       font-size: 1rem;
       transition: background .3s, color .3s;
     }
-    #themeToggle:hover {
+    button:hover {
       background: var(--accent);
       color: #fff;
       border-color: var(--accent);
+    }
+    #themeToggle {
+      min-width: 40px;
     }
     #search {
       padding: 6px 12px;
@@ -130,6 +140,90 @@
       vertical-align: middle;
       margin-right: 8px;
     }
+    
+    .status-bar {
+      margin: 20px auto 0;
+      max-width: 700px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      display: none;
+    }
+    .status-bar.error {
+      background: rgba(255, 61, 20, 0.2);
+      border: 1px solid var(--error);
+      color: var(--error);
+      display: block;
+    }
+    .status-bar.warning {
+      background: rgba(255, 193, 7, 0.2);
+      border: 1px solid var(--warning);
+      color: var(--warning);
+      display: block;
+    }
+    .status-bar.success {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid var(--success);
+      color: var(--success);
+      display: block;
+    }
+    .status-bar.info {
+      background: rgba(33, 150, 243, 0.2);
+      border: 1px solid #2196F3;
+      color: #2196F3;
+      display: block;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #debugInfo {
+      margin-top: 20px;
+      font-family: monospace;
+      font-size: 12px;
+      text-align: left;
+      background: var(--bg-alt);
+      padding: 10px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      display: none;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      overflow: auto;
+      max-height: 200px;
+    }
+    
+    @media (max-width: 600px) {
+      body {
+        padding: 20px 10px;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      th, td {
+        padding: 8px;
+        font-size: 0.9rem;
+      }
+      
+      #search {
+        width: 180px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -138,6 +232,8 @@
   <div class="toolbar">
     <button id="themeToggle">🌙</button>
     <input id="search" type="text" placeholder="🔍 Search username…">
+    <button id="debugBtn">Debug Info</button>
+    <button id="testConnBtn">Test Connection</button>
   </div>
 
   <div id="tableContainer">
@@ -149,25 +245,70 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td colspan="2">Loading…</td></tr>
+        <tr><td colspan="2"><div class="spinner"></div> Loading…</td></tr>
       </tbody>
     </table>
   </div>
+  
+  <div id="statusBar" class="status-bar"></div>
+  <div id="debugInfo"></div>
 
   <script>
     (()=>{
+      // Configuration
       const PUB_ID = '2PACX-1vTGOVfOyvRA6M-35dh_7Y8pSE_2niG4ifE7YmQBI6cV94_3ZUFMcEe8FHYheoh_mKsRlkMpwtKOYTqK';
-      const GID    = '412750346'; // Temporary LB sheet gid
-      const URL = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}`
-                + `&headers=1&tq=${encodeURIComponent('select C,A,B order by B desc')}`
-                + '&tqx=out:json';
-
-      let allData = []; // full [ { pfp, user, pts } ]
+      const GID    = '412750346'; // Leaderboard sheet gid
+      const QUERY  = 'select C,A,B order by B desc';
+      
+      // DOM Elements
       const tableBody = document.querySelector('#lbTable tbody');
       const searchInput = document.getElementById('search');
-
+      const statusBar = document.getElementById('statusBar');
+      const debugInfo = document.getElementById('debugInfo');
+      const debugBtn = document.getElementById('debugBtn');
+      const testConnBtn = document.getElementById('testConnBtn');
+      
+      // State
+      let allData = []; // full [ { pfp, user, pts } ]
+      let debugData = {};
+      
+      // Helpers
       function formatPts(n) {
         return (typeof n==='number' ? n.toFixed(2) : n).toString();
+      }
+      
+      function showStatus(message, type = 'info') {
+        statusBar.textContent = message;
+        statusBar.className = 'status-bar ' + type;
+        
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+          setTimeout(() => {
+            statusBar.style.display = 'none';
+          }, 5000);
+        }
+      }
+      
+      function hideStatus() {
+        statusBar.style.display = 'none';
+      }
+      
+      function updateDebugInfo() {
+        debugInfo.innerHTML = JSON.stringify({
+          config: {
+            pubId: PUB_ID,
+            gid: GID,
+            query: QUERY,
+            url: getSheetUrl()
+          },
+          status: debugData
+        }, null, 2);
+      }
+      
+      function getSheetUrl() {
+        return `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/gviz/tq?gid=${GID}`
+                + `&headers=1&tq=${encodeURIComponent(QUERY)}`
+                + '&tqx=out:json';
       }
 
       function render(rows) {
@@ -195,55 +336,136 @@
           tableBody.append(tr);
         });
       }
-
-      fetch(URL)
-        .then(r=>r.text())
-        .then(txt=>{
-          let json = JSON.parse(txt);
-          allData = json.table.rows.map(r=>{
-            const [c0,c1,c2] = r.c;
+      
+      function showLoadingState() {
+        tableBody.innerHTML = `<tr><td colspan="2"><div class="spinner"></div> Loading…</td></tr>`;
+      }
+      
+      function showError(message) {
+        tableBody.innerHTML = `<tr>
+          <td colspan="2" style="color: var(--error);">
+            ${message}
+          </td>
+        </tr>`;
+      }
+      
+      async function fetchLeaderboardData() {
+        showLoadingState();
+        hideStatus();
+        
+        try {
+          const url = getSheetUrl();
+          debugData.fetchStarted = new Date().toISOString();
+          
+          // First check if Google Sheets is accessible
+          const googleCheck = await fetch('https://docs.google.com/', {
+            method: 'HEAD',
+            mode: 'no-cors'
+          }).catch(err => {
+            debugData.googleConnectError = err.message;
+            throw new Error('Cannot connect to Google. Check your internet connection.');
+          });
+          
+          debugData.googleAccessible = true;
+          
+          // Now try to get the actual sheet data
+          const response = await fetch(url);
+          debugData.fetchStatus = response.status;
+          debugData.fetchStatusText = response.statusText;
+          
+          if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+          }
+          
+          const text = await response.text();
+          debugData.responseLength = text.length;
+          
+          // Google's API returns JSON wrapped in a text prefix we need to remove
+          const jsonStart = text.indexOf('{');
+          const jsonEnd = text.lastIndexOf('}') + 1;
+          
+          if (jsonStart === -1 || jsonEnd === 0) {
+            debugData.jsonParseError = 'Invalid response format';
+            throw new Error('Invalid data format received from Google Sheets');
+          }
+          
+          const jsonText = text.substring(jsonStart, jsonEnd);
+          debugData.jsonLength = jsonText.length;
+          
+          // Try to parse JSON
+          const json = JSON.parse(jsonText);
+          
+          // Check if we got the table structure we expect
+          if (!json.table || !json.table.rows) {
+            debugData.structureError = 'Missing table or rows';
+            throw new Error('Invalid sheet structure - missing data');
+          }
+          
+          // Process the data
+          allData = json.table.rows.map(r => {
+            const cells = r.c || [];
             return {
-              pfp: c0?.v||'',
-              user: c1?.v||'',
-              pts: parseFloat(c2?.v)||0
+              pfp: cells[0]?.v || '',
+              user: cells[1]?.v || '',
+              pts: parseFloat(cells[2]?.v) || 0
             };
           });
-          // render only top 50 initially
-          render(allData.slice(0,50));
-        })
-        .catch(err=>{
-          tableBody.innerHTML = `<tr>
-            <td colspan="2" style="color: #FF3D14;">
-              Error loading sheet
-            </td>
-          </tr>`;
-          console.error(err);
-        });
-
-      // search handler
-      searchInput.addEventListener('input',e=>{
+          
+          debugData.rowCount = allData.length;
+          
+          // Show success and render the top 50
+          showStatus(`Successfully loaded ${allData.length} users`, 'success');
+          render(allData.slice(0, 50));
+          
+        } catch (err) {
+          console.error('Failed to load data:', err);
+          debugData.error = err.message;
+          showError(`Error loading sheet: ${err.message}`);
+          showStatus(`Failed to load data: ${err.message}`, 'error');
+          updateDebugInfo();
+        }
+      }
+      
+      // Event Handlers
+      searchInput.addEventListener('input', e => {
         const q = e.target.value.trim().toLowerCase();
         if (!q) {
-          render(allData.slice(0,50));
+          render(allData.slice(0, 50));
         } else {
-          const matches = allData.filter(o=>
+          const matches = allData.filter(o =>
             o.user.toLowerCase().includes(q)
           );
           render(matches);
         }
       });
-
-      // theme toggle
+      
+      // Theme toggle
       const themeToggle = document.getElementById('themeToggle');
       function updateTheme() {
         const isLight = document.body.classList.toggle('light');
         themeToggle.textContent = isLight ? '☀️' : '🌙';
       }
       themeToggle.addEventListener('click', updateTheme);
-      // init from prefers-color-scheme
-      if (window.matchMedia('(prefers-color-scheme:light)').matches) {
+      
+      // Debug info toggle
+      debugBtn.addEventListener('click', () => {
+        updateDebugInfo();
+        debugInfo.style.display = debugInfo.style.display === 'block' ? 'none' : 'block';
+      });
+      
+      // Test connection button
+      testConnBtn.addEventListener('click', () => {
+        fetchLeaderboardData();
+      });
+      
+      // Initialization
+      // Init theme from prefers-color-scheme
+      if (window.matchMedia('(prefers-color-scheme: light)').matches) {
         updateTheme();
       }
+      
+      // Fetch data on load
+      fetchLeaderboardData();
     })();
   </script>
 </body>
